@@ -1,0 +1,34 @@
+@import 'tailwindcss';
+
+@import './components.css';
+@import './theme.css';
+
+@layer base {
+  ::-webkit-scrollbar {
+    width: calc(var(--spacing) * 4);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    border: var(--spacing) solid var(--color-background);
+    border-radius: calc(var(--spacing) * 2);
+  }
+
+  html,
+  body {
+    @apply flex flex-col min-h-screen overflow-x-hidden bg-background text-text;
+  }
+
+  button {
+    @apply disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer;
+  }
+
+  img {
+    @apply select-none;
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-primary-contrast);
+  }
+}
