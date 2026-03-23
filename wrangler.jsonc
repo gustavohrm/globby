@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "globby",
-  "main": "./src/backend/index.ts",
+  "main": "./apps/backend/index.ts",
   "compatibility_date": "2026-03-09",
   "assets": {
     "directory": "./dist",
