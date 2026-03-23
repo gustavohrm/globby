@@ -16,11 +16,11 @@
 
   html,
   body {
-    @apply flex flex-col min-h-screen overflow-x-hidden bg-background text-text;
+    @apply bg-background text-text flex min-h-screen flex-col overflow-x-hidden;
   }
 
   button {
-    @apply disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer;
+    @apply cursor-pointer disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   img {
