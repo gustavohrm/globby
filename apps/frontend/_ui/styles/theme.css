@@ -1,15 +1,15 @@
 @theme {
-  --color-primary: var(--color-neutral-50);
-  --color-primary-contrast: var(--color-neutral-950);
-  --color-primary-hover: var(--color-neutral-400);
-  --color-accent: var(--color-neutral-700);
+  --color-primary: var(--color-fuchsia-600);
+  --color-primary-contrast: var(--color-neutral-50);
+  --color-primary-hover: var(--color-fuchsia-700);
+  --color-accent: var(--color-pink-600);
   --color-accent-contrast: var(--color-neutral-50);
-  --color-accent-hover: var(--color-neutral-500);
-  --color-border: var(--color-neutral-700);
-  --color-border-hover: var(--color-neutral-500);
-  --color-background: var(--color-neutral-950);
-  --color-foreground: var(--color-neutral-900);
-  --color-surface: var(--color-neutral-900);
+  --color-accent-hover: var(--color-pink-700);
+  --color-border: var(--color-fuchsia-700);
+  --color-border-hover: var(--color-fuchsia-500);
+  --color-background: var(--color-slate-950);
+  --color-foreground: var(--color-slate-900);
+  --color-surface: var(--color-slate-900);
   --color-text: var(--color-neutral-50);
   --color-text-secondary: var(--color-neutral-400);
 
