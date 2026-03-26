@@ -5,11 +5,11 @@
   --color-accent: var(--color-pink-600);
   --color-accent-contrast: var(--color-neutral-50);
   --color-accent-hover: var(--color-pink-700);
-  --color-border: var(--color-fuchsia-700);
-  --color-border-hover: var(--color-fuchsia-500);
+  --color-border: var(--color-fuchsia-800);
+  --color-border-hover: var(--color-fuchsia-600);
   --color-background: var(--color-slate-950);
   --color-foreground: var(--color-slate-900);
-  --color-surface: var(--color-slate-900);
+  --color-surface: var(--color-slate-800);
   --color-text: var(--color-neutral-50);
   --color-text-secondary: var(--color-neutral-400);
 

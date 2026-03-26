@@ -3,7 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   root: './apps/frontend',
-  publicDir: './apps/frontend/_public',
+  publicDir: './_public',
   build: {
     outDir: '../../dist',
     emptyOutDir: true,
