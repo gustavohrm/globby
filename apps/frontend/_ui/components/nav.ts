@@ -4,38 +4,42 @@ const ICONS = {
   settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>`,
 };
 
+interface Page {
+  label: string;
+  icon: string;
+  path: string;
+}
+
+const PAGES: readonly Page[] = [
+  { label: 'Globby', icon: ICONS.globby, path: '/' },
+  { label: 'Chat', icon: ICONS.chat, path: '/chat/' },
+  { label: 'Settings', icon: ICONS.settings, path: '/settings/' },
+];
+
 class Nav extends HTMLElement {
   connectedCallback() {
     this.render();
   }
 
   render() {
+    const currentPath = window.location.pathname;
+
+    const tabsHtml = PAGES.map((page) => {
+      const isActive = currentPath === page.path;
+      return `
+        <a
+          href="${page.path}"
+          class="tooltip flex items-center gap-2 p-2 ${isActive ? 'text-primary bg-surface' : 'text-text-secondary'} size-10 rounded-full hover:bg-surface transition-colors duration-400"
+          data-tooltip="${page.label}"
+          data-tooltip-position="top"
+        >
+          ${page.icon}
+        </a>`;
+    }).join('');
+
     this.innerHTML = `
-      <nav class="flex items-center gap-4 rounded-full border-border border bg-foreground p-2 my-4">
-        <a
-          href="#"
-          class="tooltip flex items-center gap-2 p-2 text-primary size-10 rounded-full hover:bg-surface transition-colors duration-400"
-          data-tooltip="Globby"
-          data-tooltip-position="top"
-        >
-          ${ICONS.globby}
-        </a>
-        <a
-          href="#"
-          class="tooltip flex items-center gap-2 p-2 text-text-secondary size-10 rounded-full hover:bg-surface transition-colors duration-400"
-          data-tooltip="Chat"
-          data-tooltip-position="top"
-        >
-          ${ICONS.chat}
-        </a>
-        <a
-          href="#"
-          class="tooltip flex items-center gap-2 p-2 text-text-secondary size-10 rounded-full hover:bg-surface transition-colors duration-400"
-          data-tooltip="Settings"
-          data-tooltip-position="top"
-        >
-          ${ICONS.settings}
-        </a>
+      <nav class="flex items-center gap-4 rounded-full bg-foreground p-2 my-4">
+        ${tabsHtml}
       </nav>
     `;
   }
