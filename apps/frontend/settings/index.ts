@@ -72,9 +72,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     populateEditable(original);
   });
 
-  document.getElementById('save-btn')?.addEventListener('click', async () => {
-    const saveBtn = document.getElementById('save-btn');
-    saveBtn?.classList.add('loading');
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn?.addEventListener('click', async () => {
+    saveBtn.classList.add('loading');
 
     const displayName = getInputValue('display-name-input') || null;
     const isPublic = getToggleChecked('public-toggle');
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         populateEditable(original);
       }
     } finally {
-      saveBtn?.classList.remove('loading');
+      saveBtn.classList.remove('loading');
     }
   });
 });
