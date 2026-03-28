@@ -7,3 +7,6 @@ dist
 
 # Personal deploy config (gitignored — copy wrangler.example.jsonc and fill in credentials)
 wrangler.jsonc
+
+# Brainstorming artefacts
+.superpowers
