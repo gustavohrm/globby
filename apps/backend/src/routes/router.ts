@@ -1,16 +1,16 @@
-type RouteHandler = (
+type RouteHandler<E extends object = object> = (
   request: Request,
   params: Record<string, string>,
-  env: object,
+  env: E,
 ) => Response | Promise<Response>;
 
-type Route = {
+type Route<E extends object = object> = {
   method: string;
   path: string;
-  handler: RouteHandler;
+  handler: RouteHandler<E>;
 };
 
-export type RouteDefinition = Route;
+export type RouteDefinition<E extends object = object> = Route<E>;
 
 function matchPath(
   pattern: string,
@@ -43,6 +43,10 @@ class Router {
     this.routes.push({ method: method.toUpperCase(), path, handler });
   }
 
+  clear(): void {
+    this.routes = [];
+  }
+
   match(
     method: string,
     pathname: string,
@@ -55,7 +59,7 @@ class Router {
     return null;
   }
 
-  async handle(request: Request, env: object): Promise<Response> {
+  async handle<E extends object>(request: Request, env: E): Promise<Response> {
     const url = new URL(request.url);
     const match = this.match(request.method, url.pathname);
 
@@ -69,9 +73,15 @@ class Router {
 
 const router = new Router();
 
-export const register = (route: RouteDefinition): void => {
-  router.add(route.method, route.path, route.handler);
+export const register = <E extends object = object>(
+  route: RouteDefinition<E>,
+): void => {
+  router.add(route.method, route.path, route.handler as RouteHandler);
 };
 
-export const handle = (request: Request, env: object) =>
-  router.handle(request, env);
+export const clearRoutes = (): void => router.clear();
+
+export const handle = <E extends object = object>(
+  request: Request,
+  env: E,
+): Promise<Response> => router.handle(request, env);

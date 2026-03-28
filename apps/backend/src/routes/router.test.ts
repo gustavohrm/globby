@@ -1,5 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { register, handle } from "./router";
+import { describe, it, expect, beforeEach } from "vitest";
+import { register, handle, clearRoutes } from "./router";
+
+beforeEach(() => {
+  clearRoutes();
+});
 
 describe("Router", () => {
   it("matches a registered route", async () => {
@@ -69,11 +73,10 @@ describe("Router", () => {
   });
 
   it("passes env to handler", async () => {
-    register({
+    register<{ VALUE: string }>({
       method: "GET",
       path: "/env-test",
-      handler: (_req, _params, env) =>
-        new Response((env as { VALUE: string }).VALUE),
+      handler: (_req, _params, env) => new Response(env.VALUE),
     });
 
     const response = await handle(

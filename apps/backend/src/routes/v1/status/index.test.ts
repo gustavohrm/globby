@@ -1,6 +1,14 @@
-import { describe, it, expect } from "vitest";
-import { handle } from "../../router";
-import ".";
+import { describe, it, expect, beforeEach } from "vitest";
+import { handle, clearRoutes, register } from "../../router";
+
+beforeEach(() => {
+  clearRoutes();
+  register({
+    method: "GET",
+    path: "/api/v1/status",
+    handler: () => Response.json({ status: "ok" }),
+  });
+});
 
 describe("status route", () => {
   it("responds to GET /api/v1/status with ok", async () => {
