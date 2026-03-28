@@ -1,4 +1,8 @@
-type RouteHandler = (request: Request) => Response | Promise<Response>;
+type RouteHandler = (
+  request: Request,
+  params: Record<string, string>,
+  env: object,
+) => Response | Promise<Response>;
 
 type Route = {
   method: string;
@@ -8,6 +12,30 @@ type Route = {
 
 export type RouteDefinition = Route;
 
+function matchPath(
+  pattern: string,
+  pathname: string,
+): Record<string, string> | null {
+  const patternParts = pattern.split("/");
+  const pathParts = pathname.split("/");
+
+  if (patternParts.length !== pathParts.length) return null;
+
+  const params: Record<string, string> = {};
+
+  for (let i = 0; i < patternParts.length; i++) {
+    const p = patternParts[i];
+    const v = pathParts[i];
+    if (p.startsWith(":")) {
+      params[p.slice(1)] = v;
+    } else if (p !== v) {
+      return null;
+    }
+  }
+
+  return params;
+}
+
 class Router {
   private routes: Route[] = [];
 
@@ -15,22 +43,27 @@ class Router {
     this.routes.push({ method: method.toUpperCase(), path, handler });
   }
 
-  match(method: string, path: string): RouteHandler | null {
-    const route = this.routes.find(
-      (r) => r.method === method.toUpperCase() && r.path === path,
-    );
-    return route?.handler ?? null;
+  match(
+    method: string,
+    pathname: string,
+  ): { handler: RouteHandler; params: Record<string, string> } | null {
+    for (const route of this.routes) {
+      if (route.method !== method.toUpperCase()) continue;
+      const params = matchPath(route.path, pathname);
+      if (params !== null) return { handler: route.handler, params };
+    }
+    return null;
   }
 
-  async handle(request: Request): Promise<Response> {
+  async handle(request: Request, env: object): Promise<Response> {
     const url = new URL(request.url);
-    const handler = this.match(request.method, url.pathname);
+    const match = this.match(request.method, url.pathname);
 
-    if (!handler) {
+    if (!match) {
       return new Response("Not Found", { status: 404 });
     }
 
-    return handler(request);
+    return match.handler(request, match.params, env);
   }
 }
 
@@ -40,4 +73,5 @@ export const register = (route: RouteDefinition): void => {
   router.add(route.method, route.path, route.handler);
 };
 
-export const handle = (request: Request) => router.handle(request);
+export const handle = (request: Request, env: object) =>
+  router.handle(request, env);

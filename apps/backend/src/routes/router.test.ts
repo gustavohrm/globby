@@ -9,12 +9,12 @@ describe("Router", () => {
       handler: () => new Response("hit"),
     });
 
-    const response = await handle(new Request("http://localhost/test"));
+    const response = await handle(new Request("http://localhost/test"), {});
     expect(await response.text()).toBe("hit");
   });
 
   it("returns 404 for unregistered paths", async () => {
-    const response = await handle(new Request("http://localhost/missing"));
+    const response = await handle(new Request("http://localhost/missing"), {});
     expect(response.status).toBe(404);
   });
 
@@ -30,12 +30,56 @@ describe("Router", () => {
       handler: () => new Response("post"),
     });
 
-    const get = await handle(new Request("http://localhost/resource"));
+    const get = await handle(new Request("http://localhost/resource"), {});
     expect(await get.text()).toBe("get");
 
     const post = await handle(
       new Request("http://localhost/resource", { method: "POST" }),
+      {},
     );
     expect(await post.text()).toBe("post");
+  });
+
+  it("extracts path parameters", async () => {
+    register({
+      method: "GET",
+      path: "/users/:id",
+      handler: (_req, params) => new Response(params.id),
+    });
+
+    const response = await handle(
+      new Request("http://localhost/users/abc123"),
+      {},
+    );
+    expect(await response.text()).toBe("abc123");
+  });
+
+  it("does not match param route when segment count differs", async () => {
+    register({
+      method: "GET",
+      path: "/items/:id",
+      handler: () => new Response("hit"),
+    });
+
+    const response = await handle(
+      new Request("http://localhost/items/abc/extra"),
+      {},
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("passes env to handler", async () => {
+    register({
+      method: "GET",
+      path: "/env-test",
+      handler: (_req, _params, env) =>
+        new Response((env as { VALUE: string }).VALUE),
+    });
+
+    const response = await handle(
+      new Request("http://localhost/env-test"),
+      { VALUE: "hello" },
+    );
+    expect(await response.text()).toBe("hello");
   });
 });
