@@ -14,5 +14,6 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["apps/frontend", "vite.config.ts"]
+  "include": ["apps/frontend", "vite.config.ts"],
+  "exclude": ["apps/frontend/settings"]
 }
