@@ -54,7 +54,7 @@ describe('GET /api/v1/lobby/users', () => {
 
     const res = await handle(new Request('http://localhost/api/v1/lobby/users'), makeEnv(kv));
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { users: Array<{ id: string }> };
+    const body = (await res.json()) as { users: Array<{ id: string; username: string }> };
     expect(body.users).toHaveLength(1);
     expect(body.users[0].id).toBe(id);
     expect(typeof body.users[0].username).toBe('string');
