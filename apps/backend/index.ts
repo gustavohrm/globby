@@ -1,5 +1,7 @@
+import { handle } from "./src/routes";
+
 export default {
-  async fetch(): Promise<Response> {
-    return new Response(JSON.stringify({ message: 'Hello World' }));
+  async fetch(request: Request): Promise<Response> {
+    return handle(request);
   },
 };
