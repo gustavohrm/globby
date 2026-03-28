@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Globby</title>
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../_ui/styles/index.css" />
+    <script type="module" src="../_ui/components/index.ts"></script>
+    <script type="module" src="../_ui/scripts/index.ts"></script>
+  </head>
+  <body>
+    <app-shell>
+      <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 pt-4">
+        <h1 class="text-2xl font-bold">Settings</h1>
+
+        <app-input label="Username" placeholder="user123"></app-input>
+        <label for="public-toggle" class="flex items-center justify-between gap-2">
+          Make profile public
+          <app-toggle id="public-toggle"></app-toggle>
+        </label>
+        <div class="flex items-center justify-end gap-4">
+          <button class="secondary-btn">Cancel</button>
+          <button class="primary-btn">Save</button>
+        </div>
+      </div>
+    </app-shell>
+  </body>
+</html>

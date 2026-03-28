@@ -38,7 +38,7 @@ class Nav extends HTMLElement {
     }).join('');
 
     this.innerHTML = `
-      <nav class="flex items-center gap-4 rounded-full bg-foreground p-2 my-4">
+      <nav class="flex fixed bottom-0 left-1/2 -translate-x-1/2 items-center gap-4 rounded-full bg-foreground p-2 my-4">
         ${tabsHtml}
       </nav>
     `;
