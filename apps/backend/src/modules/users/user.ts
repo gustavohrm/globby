@@ -11,6 +11,8 @@ export type User = {
 
 export type PublicUser = Pick<User, "id" | "username" | "displayName" | "isPublic">;
 
+export type LobbyUser = Pick<User, "id" | "username" | "displayName">;
+
 function userKey(id: string): string {
   return `user:${id}`;
 }
@@ -81,7 +83,7 @@ export async function updateUser(
   return updated;
 }
 
-export async function getLobbyUsers(kv: KVNamespace): Promise<PublicUser[]> {
+export async function getLobbyUsers(kv: KVNamespace): Promise<LobbyUser[]> {
   const raw = await kv.get(LOBBY_KEY);
   if (!raw) return [];
 

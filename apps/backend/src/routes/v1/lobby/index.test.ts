@@ -66,6 +66,7 @@ describe("GET /api/v1/lobby/users", () => {
     const body = await res.json() as { users: Array<{ id: string }> };
     expect(body.users).toHaveLength(1);
     expect(body.users[0].id).toBe(id);
+    expect(typeof body.users[0].username).toBe("string");
     expect(body.users[0]).not.toHaveProperty("secret");
     expect(body.users[0]).not.toHaveProperty("isPublic");
   });

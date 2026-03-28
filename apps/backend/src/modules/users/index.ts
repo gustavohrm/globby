@@ -1,4 +1,4 @@
-export type { User, PublicUser } from "./user";
+export type { User, PublicUser, LobbyUser } from "./user";
 export {
   getUser,
   createUser,
