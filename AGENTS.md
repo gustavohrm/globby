@@ -57,7 +57,7 @@ apps/
       scripts/index.ts           # Global scripts
       styles/                    # index.css, theme.css, components.css
 dist/                            # Frontend build output (gitignored, served as static assets)
-wrangler.production.example.jsonc  # Template for production deployment config (copy to wrangler.production.jsonc)
+wrangler.example.jsonc             # Template for deployment config (copy to wrangler.jsonc, gitignored)
 ```
 
 ## Routing
@@ -107,7 +107,7 @@ Components re-render on observed attribute changes and dispatch events upward.
 ## Deployment
 
 - Local dev (`preview:local`): no Cloudflare account needed, KV is simulated
-- Production: copy `wrangler.production.example.jsonc` → `wrangler.production.jsonc` (gitignored), fill in real KV namespace IDs from `npx wrangler kv namespace create USERS_KV`, deploy with `wrangler deploy --config wrangler.production.jsonc`
+- Production: copy `wrangler.example.jsonc` → `wrangler.jsonc` (gitignored), fill in real KV namespace IDs from `npx wrangler kv namespace create USERS_KV`, deploy with `wrangler deploy`
 
 ## TypeScript Config
 

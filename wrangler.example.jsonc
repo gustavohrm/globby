@@ -14,6 +14,8 @@
       // Then paste the returned ID below
       "binding": "USERS_KV",
       "id": "REPLACE_WITH_YOUR_KV_NAMESPACE_ID",
+      // For preview (wrangler dev without --local):
+      // Run: npx wrangler kv namespace create USERS_KV --preview
       "preview_id": "REPLACE_WITH_YOUR_KV_PREVIEW_NAMESPACE_ID",
     },
   ],
