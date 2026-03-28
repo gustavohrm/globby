@@ -32,15 +32,22 @@ npm run lint:fix          # Auto-fix formatting
 ```
 apps/
   backend/
-    index.ts                     # Worker entry point (exports fetch handler)
+    index.ts                     # Worker entry point; exports Env interface and fetch handler
     src/
       routes/
-        router.ts                # Custom Router class (method + exact path matching)
+        router.ts                # Custom Router class (:param support, env threading, clearRoutes)
         index.ts                 # Route registration
         v1/
           status/index.ts        # GET /api/v1/status
+          users/index.ts         # POST /api/v1/users, GET/PATCH /api/v1/users/:id
+          lobby/index.ts         # GET /api/v1/lobby/users
           rooms/                 # Reserved for messaging endpoints
-      modules/                   # Reserved for shared backend logic
+      modules/
+        users/
+          index.ts               # Re-exports: User, PublicUser, LobbyUser, KV helpers, auth
+          user.ts                # User/PublicUser/LobbyUser types + KV helpers (getUser, createUser, updateUser, getLobbyUsers, toPublicProfile)
+          username.ts            # Adjective+noun username generator
+          auth.ts                # extractBearer() — Bearer token extraction
   frontend/
     index.html                   # Main page
     settings/index.html          # Settings page
@@ -50,13 +57,14 @@ apps/
       scripts/index.ts           # Global scripts
       styles/                    # index.css, theme.css, components.css
 dist/                            # Frontend build output (gitignored, served as static assets)
+wrangler.production.example.jsonc  # Template for production deployment config (copy to wrangler.production.jsonc)
 ```
 
 ## Routing
 
 **Frontend:** No router framework. Three nav tabs in `app-nav`: `/` (home), `/chat/`, `/settings/`. Active route detected via `window.location.pathname`.
 
-**Backend:** Custom `Router` class in `apps/backend/src/routes/router.ts`. Matches by HTTP method + exact path. Routes registered in `apps/backend/src/routes/index.ts`. All API routes are under `/api/v1/`.
+**Backend:** Custom `Router` class in `apps/backend/src/routes/router.ts`. Supports `:param` path segments (e.g. `/users/:id`). Handlers receive `(request, params, env)`. Call `clearRoutes()` in `beforeEach` for test isolation and re-register routes manually. Routes registered in `apps/backend/src/routes/index.ts`. All API routes are under `/api/v1/`.
 
 **Deployment routing:** Wrangler serves the Worker for `/api/*` paths first, then falls back to the KV asset handler for static files (frontend build).
 
@@ -74,9 +82,32 @@ Components re-render on observed attribute changes and dispatch events upward.
 ## Backend Conventions
 
 - Route handlers return `Response` objects
+- Handlers are typed with `register<Env>(...)` so `env.USERS_KV` is available without casting
 - Tests are co-located with implementation (`*.test.ts` next to `*.ts`)
 - Vitest only covers `apps/backend/**/*.test.ts`
 - No unused locals/parameters (enforced by `tsconfig.json`)
+- KV is accessed via helpers in `modules/users/` — handlers never call `kv` directly
+- Mock KV in tests: use a `Map`-backed object implementing `get`, `put`, `delete`, `list`; cast with `as unknown as KVNamespace`
+
+## Users & Auth
+
+- Users are anonymous — no sign-up, no login
+- Created via `POST /api/v1/users` → returns `{ id, username, secret }`; client stores the secret
+- Auth on mutating endpoints: `Authorization: Bearer <secret>` header; validated by `extractBearer()` + comparing against stored `user.secret`
+- Profiles are private by default (`isPublic: false`); users opt in to appear in the lobby
+
+## KV Schema
+
+| Key | Value | Description |
+|-----|-------|-------------|
+| `user:{uuid}` | `User` JSON | Full user record including secret |
+| `username:{username}` | user ID | Username uniqueness index |
+| `lobby:users` | `string[]` JSON | Array of public user IDs |
+
+## Deployment
+
+- Local dev (`preview:local`): no Cloudflare account needed, KV is simulated
+- Production: copy `wrangler.production.example.jsonc` → `wrangler.production.jsonc` (gitignored), fill in real KV namespace IDs from `npx wrangler kv namespace create USERS_KV`, deploy with `wrangler deploy --config wrangler.production.jsonc`
 
 ## TypeScript Config
 
