@@ -10,8 +10,11 @@
   },
   "kv_namespaces": [
     {
+      // Run: npx wrangler kv namespace create USERS_KV
+      // Then paste the returned ID below
       "binding": "USERS_KV",
-      "id": "local_placeholder",
+      "id": "REPLACE_WITH_YOUR_KV_NAMESPACE_ID",
+      "preview_id": "REPLACE_WITH_YOUR_KV_PREVIEW_NAMESPACE_ID",
     },
   ],
 }
