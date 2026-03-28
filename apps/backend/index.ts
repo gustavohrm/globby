@@ -1,4 +1,4 @@
-import { handle } from "./src/routes";
+import { handle } from './src/routes';
 
 export interface Env {
   USERS_KV: KVNamespace;

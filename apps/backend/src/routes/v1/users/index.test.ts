@@ -1,7 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { handle } from "../../router";
-import "./index";
-import type { Env } from "../../../../index";
+import { describe, it, expect } from 'vitest';
+import { handle } from '../../router';
+import './index';
+import type { Env } from '../../../../index';
 
 function makeMockKV(): KVNamespace {
   const store = new Map<string, string>();
@@ -16,7 +16,7 @@ function makeMockKV(): KVNamespace {
       store.delete(key);
     },
     async list() {
-      return { keys: [], list_complete: true, cursor: "" };
+      return { keys: [], list_complete: true, cursor: '' };
     },
   } as unknown as KVNamespace;
 }
@@ -25,13 +25,10 @@ function makeEnv(kv: KVNamespace): Env {
   return { USERS_KV: kv };
 }
 
-describe("POST /api/v1/users", () => {
-  it("creates a user and returns id, username, secret", async () => {
+describe('POST /api/v1/users', () => {
+  it('creates a user and returns id, username, secret', async () => {
     const kv = makeMockKV();
-    const res = await handle(
-      new Request("http://localhost/api/v1/users", { method: "POST" }),
-      makeEnv(kv),
-    );
+    const res = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
 
     expect(res.status).toBe(201);
     const body = (await res.json()) as {
@@ -39,49 +36,37 @@ describe("POST /api/v1/users", () => {
       username: string;
       secret: string;
     };
-    expect(typeof body.id).toBe("string");
-    expect(typeof body.username).toBe("string");
-    expect(typeof body.secret).toBe("string");
+    expect(typeof body.id).toBe('string');
+    expect(typeof body.username).toBe('string');
+    expect(typeof body.secret).toBe('string');
   });
 });
 
-describe("GET /api/v1/users/:id", () => {
-  it("returns public profile for existing user", async () => {
+describe('GET /api/v1/users/:id', () => {
+  it('returns public profile for existing user', async () => {
     const kv = makeMockKV();
-    const createRes = await handle(
-      new Request("http://localhost/api/v1/users", { method: "POST" }),
-      makeEnv(kv),
-    );
+    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
     const { id } = (await createRes.json()) as { id: string };
 
-    const res = await handle(
-      new Request(`http://localhost/api/v1/users/${id}`),
-      makeEnv(kv),
-    );
+    const res = await handle(new Request(`http://localhost/api/v1/users/${id}`), makeEnv(kv));
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.id).toBe(id);
-    expect(body).not.toHaveProperty("secret");
+    expect(body).not.toHaveProperty('secret');
   });
 
-  it("returns 404 for unknown user", async () => {
+  it('returns 404 for unknown user', async () => {
     const kv = makeMockKV();
-    const res = await handle(
-      new Request("http://localhost/api/v1/users/nonexistent"),
-      makeEnv(kv),
-    );
+    const res = await handle(new Request('http://localhost/api/v1/users/nonexistent'), makeEnv(kv));
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: "User not found" });
+    expect(await res.json()).toEqual({ error: 'User not found' });
   });
 });
 
-describe("PATCH /api/v1/users/:id", () => {
-  it("updates displayName and isPublic with correct secret", async () => {
+describe('PATCH /api/v1/users/:id', () => {
+  it('updates displayName and isPublic with correct secret', async () => {
     const kv = makeMockKV();
-    const createRes = await handle(
-      new Request("http://localhost/api/v1/users", { method: "POST" }),
-      makeEnv(kv),
-    );
+    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
     const { id, secret } = (await createRes.json()) as {
       id: string;
       secret: string;
@@ -89,88 +74,79 @@ describe("PATCH /api/v1/users/:id", () => {
 
     const res = await handle(
       new Request(`http://localhost/api/v1/users/${id}`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${secret}`,
         },
-        body: JSON.stringify({ displayName: "Alice", isPublic: true }),
+        body: JSON.stringify({ displayName: 'Alice', isPublic: true }),
       }),
       makeEnv(kv),
     );
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
-    expect(body.displayName).toBe("Alice");
+    expect(body.displayName).toBe('Alice');
     expect(body.isPublic).toBe(true);
-    expect(body).not.toHaveProperty("secret");
+    expect(body).not.toHaveProperty('secret');
   });
 
-  it("returns 401 with missing Authorization header", async () => {
+  it('returns 401 with missing Authorization header', async () => {
     const kv = makeMockKV();
-    const createRes = await handle(
-      new Request("http://localhost/api/v1/users", { method: "POST" }),
-      makeEnv(kv),
-    );
+    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
     const { id } = (await createRes.json()) as { id: string };
 
     const res = await handle(
       new Request(`http://localhost/api/v1/users/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: "Alice" }),
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: 'Alice' }),
       }),
       makeEnv(kv),
     );
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: "Unauthorized" });
+    expect(await res.json()).toEqual({ error: 'Unauthorized' });
   });
 
-  it("returns 401 with wrong secret", async () => {
+  it('returns 401 with wrong secret', async () => {
     const kv = makeMockKV();
-    const createRes = await handle(
-      new Request("http://localhost/api/v1/users", { method: "POST" }),
-      makeEnv(kv),
-    );
+    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
     const { id } = (await createRes.json()) as { id: string };
 
     const res = await handle(
       new Request(`http://localhost/api/v1/users/${id}`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer wrong-secret",
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer wrong-secret',
         },
-        body: JSON.stringify({ displayName: "Alice" }),
+        body: JSON.stringify({ displayName: 'Alice' }),
       }),
       makeEnv(kv),
     );
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: "Unauthorized" });
+    expect(await res.json()).toEqual({ error: 'Unauthorized' });
   });
 
-  it("returns 404 for unknown user", async () => {
+  it('returns 404 for unknown user', async () => {
     const kv = makeMockKV();
     const res = await handle(
-      new Request("http://localhost/api/v1/users/nonexistent", {
-        method: "PATCH",
+      new Request('http://localhost/api/v1/users/nonexistent', {
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer any-secret",
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer any-secret',
         },
-        body: JSON.stringify({ displayName: "Alice" }),
+        body: JSON.stringify({ displayName: 'Alice' }),
       }),
       makeEnv(kv),
     );
     expect(res.status).toBe(404);
   });
 
-  it("returns 400 for invalid body", async () => {
+  it('returns 400 for invalid body', async () => {
     const kv = makeMockKV();
-    const createRes = await handle(
-      new Request("http://localhost/api/v1/users", { method: "POST" }),
-      makeEnv(kv),
-    );
+    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
     const { id, secret } = (await createRes.json()) as {
       id: string;
       secret: string;
@@ -178,16 +154,16 @@ describe("PATCH /api/v1/users/:id", () => {
 
     const res = await handle(
       new Request(`http://localhost/api/v1/users/${id}`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${secret}`,
         },
-        body: "not json",
+        body: 'not json',
       }),
       makeEnv(kv),
     );
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "Invalid request body" });
+    expect(await res.json()).toEqual({ error: 'Invalid request body' });
   });
 });

@@ -56,6 +56,7 @@ All routes are under `/api/v1/`.
 Creates a new user. No request body required.
 
 **Response 201:**
+
 ```json
 {
   "id": "550e8400-...",
@@ -73,6 +74,7 @@ The `secret` is only returned here. The client is responsible for storing it.
 Returns the public profile of a user. The `secret` field is never included.
 
 **Response 200:**
+
 ```json
 {
   "id": "550e8400-...",
@@ -83,6 +85,7 @@ Returns the public profile of a user. The `secret` field is never included.
 ```
 
 **Response 404:**
+
 ```json
 { "error": "User not found" }
 ```
@@ -94,6 +97,7 @@ Returns the public profile of a user. The `secret` field is never included.
 Updates `displayName` and/or `isPublic`. Requires `Authorization: Bearer <secret>`.
 
 **Request body** (all fields optional):
+
 ```json
 {
   "displayName": "Alice",
@@ -118,11 +122,10 @@ When `isPublic` changes, the `lobby:users` index is updated in the same operatio
 Returns all users who have opted in to public visibility.
 
 **Response 200:**
+
 ```json
 {
-  "users": [
-    { "id": "...", "username": "SilentOtter", "displayName": null }
-  ]
+  "users": [{ "id": "...", "username": "SilentOtter", "displayName": null }]
 }
 ```
 
@@ -137,11 +140,7 @@ The existing `Router` class is extended to support `:param` path segments. Patte
 Route handlers gain a second argument:
 
 ```ts
-type RouteHandler = (
-  request: Request,
-  params: Record<string, string>,
-  env: Env,
-) => Response | Promise<Response>;
+type RouteHandler = (request: Request, params: Record<string, string>, env: Env) => Response | Promise<Response>;
 ```
 
 The `Env` type (containing the `USERS_KV` binding) is introduced in the worker entry point and threaded through the router to all handlers.
@@ -205,6 +204,7 @@ A new KV namespace `USERS_KV` is added to `wrangler.jsonc`. For local developmen
 Tests are co-located with route files (`index.test.ts`), following the existing pattern. Since Vitest runs outside the Workers runtime, handlers accept `env` as a parameter. Tests pass a mock KV object backed by a `Map`, implementing `get`, `put`, `delete`, and `list`.
 
 Error cases covered per route:
+
 - `POST /api/v1/users` — successful creation
 - `GET /api/v1/users/:id` — found, not found
 - `PATCH /api/v1/users/:id` — success, missing auth, wrong secret, not found, invalid body

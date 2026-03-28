@@ -12,12 +12,9 @@ type Route<E extends object = object> = {
 
 export type RouteDefinition<E extends object = object> = Route<E>;
 
-function matchPath(
-  pattern: string,
-  pathname: string,
-): Record<string, string> | null {
-  const patternParts = pattern.split("/");
-  const pathParts = pathname.split("/");
+function matchPath(pattern: string, pathname: string): Record<string, string> | null {
+  const patternParts = pattern.split('/');
+  const pathParts = pathname.split('/');
 
   if (patternParts.length !== pathParts.length) return null;
 
@@ -26,7 +23,7 @@ function matchPath(
   for (let i = 0; i < patternParts.length; i++) {
     const p = patternParts[i];
     const v = pathParts[i];
-    if (p.startsWith(":")) {
+    if (p.startsWith(':')) {
       params[p.slice(1)] = v;
     } else if (p !== v) {
       return null;
@@ -47,10 +44,7 @@ class Router {
     this.routes = [];
   }
 
-  match(
-    method: string,
-    pathname: string,
-  ): { handler: RouteHandler; params: Record<string, string> } | null {
+  match(method: string, pathname: string): { handler: RouteHandler; params: Record<string, string> } | null {
     for (const route of this.routes) {
       if (route.method !== method.toUpperCase()) continue;
       const params = matchPath(route.path, pathname);
@@ -64,7 +58,7 @@ class Router {
     const match = this.match(request.method, url.pathname);
 
     if (!match) {
-      return new Response("Not Found", { status: 404 });
+      return new Response('Not Found', { status: 404 });
     }
 
     return match.handler(request, match.params, env);
@@ -73,15 +67,11 @@ class Router {
 
 const router = new Router();
 
-export const register = <E extends object = object>(
-  route: RouteDefinition<E>,
-): void => {
+export const register = <E extends object = object>(route: RouteDefinition<E>): void => {
   router.add(route.method, route.path, route.handler as RouteHandler);
 };
 
 export const clearRoutes = (): void => router.clear();
 
-export const handle = <E extends object = object>(
-  request: Request,
-  env: E,
-): Promise<Response> => router.handle(request, env);
+export const handle = <E extends object = object>(request: Request, env: E): Promise<Response> =>
+  router.handle(request, env);

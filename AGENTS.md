@@ -63,6 +63,7 @@ dist/                            # Frontend build output (gitignored, served as 
 ## Frontend Components
 
 Web Components registered in `_ui/components/index.ts`:
+
 - `app-shell` — main layout wrapper
 - `app-nav` — bottom navigation bar
 - `app-input` — labeled form input

@@ -1,4 +1,4 @@
-import { generateUsername, generateUsernameWithSuffix } from "./username";
+import { generateUsername, generateUsernameWithSuffix } from './username';
 
 export type User = {
   id: string;
@@ -9,20 +9,17 @@ export type User = {
   createdAt: string;
 };
 
-export type PublicUser = Pick<User, "id" | "username" | "displayName" | "isPublic">;
+export type PublicUser = Pick<User, 'id' | 'username' | 'displayName' | 'isPublic'>;
 
-export type LobbyUser = Pick<User, "id" | "username" | "displayName">;
+export type LobbyUser = Pick<User, 'id' | 'username' | 'displayName'>;
 
 function userKey(id: string): string {
   return `user:${id}`;
 }
 
-const LOBBY_KEY = "lobby:users";
+const LOBBY_KEY = 'lobby:users';
 
-export async function getUser(
-  kv: KVNamespace,
-  id: string,
-): Promise<User | null> {
+export async function getUser(kv: KVNamespace, id: string): Promise<User | null> {
   const raw = await kv.get(userKey(id));
   if (!raw) return null;
   return JSON.parse(raw) as User;
@@ -73,9 +70,7 @@ export async function updateUser(
     const raw = await kv.get(LOBBY_KEY);
     const index: string[] = raw ? (JSON.parse(raw) as string[]) : [];
 
-    const newIndex = patch.isPublic
-      ? [...index, updated.id]
-      : index.filter((uid) => uid !== updated.id);
+    const newIndex = patch.isPublic ? [...index, updated.id] : index.filter((uid) => uid !== updated.id);
 
     await kv.put(LOBBY_KEY, JSON.stringify(newIndex));
   }
@@ -95,9 +90,7 @@ export async function getLobbyUsers(kv: KVNamespace): Promise<LobbyUser[]> {
     .map(({ id, username, displayName }) => ({ id, username, displayName }));
 }
 
-export function toPublicProfile(
-  user: User,
-): Pick<User, "id" | "username" | "displayName" | "isPublic"> {
+export function toPublicProfile(user: User): Pick<User, 'id' | 'username' | 'displayName' | 'isPublic'> {
   return {
     id: user.id,
     username: user.username,

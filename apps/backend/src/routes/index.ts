@@ -1,5 +1,5 @@
-import "./v1/status";
-import "./v1/users";
-import "./v1/lobby";
+import './v1/status';
+import './v1/users';
+import './v1/lobby';
 
-export { handle } from "./router";
+export { handle } from './router';
