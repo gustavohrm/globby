@@ -73,3 +73,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     lobbyEl.textContent = 'Failed to load lobby.';
   }
 });
+
+export {};

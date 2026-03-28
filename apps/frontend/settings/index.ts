@@ -49,10 +49,23 @@ function setToggleChecked(id: string, value: boolean) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const session = await getOrCreateSession();
+  let session: Session;
+  try {
+    session = await getOrCreateSession();
+  } catch {
+    document.querySelector('h1')?.insertAdjacentHTML('afterend', '<p class="text-error">Could not initialise session. Please reload.</p>');
+    return;
+  }
 
-  const profileRes = await fetch(`/api/v1/users/${session.id}`);
-  let original = (await profileRes.json()) as UserProfile;
+  let original: UserProfile;
+  try {
+    const profileRes = await fetch(`/api/v1/users/${session.id}`);
+    if (!profileRes.ok) throw new Error(`Failed to load profile: ${profileRes.status}`);
+    original = (await profileRes.json()) as UserProfile;
+  } catch {
+    document.querySelector('h1')?.insertAdjacentHTML('afterend', '<p class="text-error">Could not load profile. Please reload.</p>');
+    return;
+  }
 
   // Username is set once and made readonly — never updated again so re-render won't occur
   setInputValue('username-input', original.username);
@@ -74,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const saveBtn = document.getElementById('save-btn');
   saveBtn?.addEventListener('click', async () => {
+    document.getElementById('save-error')?.remove();
     saveBtn.classList.add('loading');
 
     const displayName = getInputValue('display-name-input') || null;
@@ -92,9 +106,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (res.ok) {
         original = (await res.json()) as UserProfile;
         populateEditable(original);
+      } else {
+        document.querySelector('h1')?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Save failed. Please try again.</p>');
       }
     } finally {
       saveBtn.classList.remove('loading');
     }
   });
 });
+
+export {};
