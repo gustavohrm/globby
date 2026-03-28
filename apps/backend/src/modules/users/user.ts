@@ -9,7 +9,7 @@ export type User = {
   createdAt: string;
 };
 
-export type PublicUser = Pick<User, "id" | "username" | "displayName">;
+export type PublicUser = Pick<User, "id" | "username" | "displayName" | "isPublic">;
 
 function userKey(id: string): string {
   return `user:${id}`;
