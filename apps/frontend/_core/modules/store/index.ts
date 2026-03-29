@@ -88,7 +88,7 @@ export function createStore<TSchema extends object>(
     }
 
     try {
-      return JSON.parse(raw) as TSchema;
+      return structuredClone(JSON.parse(raw) as TSchema);
     } catch {
       return structuredClone(initialState);
     }

@@ -20,7 +20,6 @@ export function animateOut(element: HTMLDivElement, onComplete: () => void): voi
   const keyframes = [...BASE_ANIMATION_KEYFRAMES].reverse();
   const animation = element.animate(keyframes, BASE_ANIMATION_OPTIONS);
 
-  animation.onfinish = () => {
-    onComplete();
-  };
+  animation.onfinish = onComplete;
+  animation.oncancel = onComplete;
 }

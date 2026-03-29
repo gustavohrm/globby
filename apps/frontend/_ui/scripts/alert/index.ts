@@ -8,7 +8,7 @@ interface AlertOptions {
   type?: AlertType;
   duration?: number;
   isDismissable?: boolean;
-  /** Only takes effect when `isDismissable` is true. Defaults to true. */
+  /** Defaults to true. When `isDismissable` is false, auto-dismiss is always active. */
   autoDismiss?: boolean;
   hasIcon?: boolean;
 }

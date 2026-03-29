@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { showAlert } from "./index";
-import { MAX_ALERTS } from "./constants";
-import { CONTAINER_ID } from "./constants";
+import { MAX_ALERTS, CONTAINER_ID } from "./constants";
 
 describe("Alert queue logic", () => {
   let animateMock: any;
