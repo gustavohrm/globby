@@ -1,7 +1,6 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
 import { createStore } from "./index";
-
-// @vitest-environment jsdom
 
 describe("Store", () => {
   beforeEach(() => {

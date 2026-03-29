@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { showAlert } from "./index";
-import { MAX_ALERTS, CONTAINER_ID } from "./constants";
+import { MAX_ALERTS, CONTAINER_ID, DEFAULT_DURATION } from "./constants";
 
 describe("Alert queue logic", () => {
   let animateMock: any;
@@ -13,6 +13,7 @@ describe("Alert queue logic", () => {
     // Mock the Web Animations API because jsdom lacks it
     animateMock = vi.fn(() => ({
       onfinish: null,
+      oncancel: null,
     }));
     window.Element.prototype.animate = animateMock;
   });
@@ -56,13 +57,32 @@ describe("Alert queue logic", () => {
 
     // Now after they finish, the container should only hold MAX_ALERTS elements
     expect(container!.children.length).toBe(MAX_ALERTS);
-    
+
     // The inner text of the remaining alerts should be the *latest* ones!
     const remainingSpans = Array.from(container!.querySelectorAll("span")).map(s => s.textContent);
-    
+
     for (let i = 0; i < MAX_ALERTS; i++) {
         expect(remainingSpans).toContain(`Alert ${i + 2}`);
     }
+  });
+
+  it("should remove alert when animation is cancelled (oncancel)", () => {
+    showAlert({ message: "cancel me" });
+
+    const container = document.getElementById(CONTAINER_ID)!;
+    expect(container.children.length).toBe(1);
+
+    // Trigger oncancel on the animateIn call (index 0) — that one has no oncancel handler.
+    // The animateOut is triggered by the auto-dismiss timeout. Advance timer to trigger it.
+    vi.advanceTimersByTime(DEFAULT_DURATION);
+
+    // Now animateOut ran. Find the animateOut call's mock result and fire oncancel.
+    const mockResults = animateMock.mock.results;
+    // animateIn is call 0 (no oncancel), animateOut is call 1
+    const animateOutResult = mockResults[1].value;
+    animateOutResult.oncancel();
+
+    expect(container.children.length).toBe(0);
   });
 });
 
