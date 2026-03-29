@@ -45,6 +45,15 @@ class Toggle extends HTMLElement {
         <div class="w-11 h-6 bg-surface peer-focus:outline-none rounded-full transition-colors duration-400 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text after:rounded-full after:size-5 after:transition-transform peer-checked:bg-primary"></div>
       </div>
     `;
+
+    // When inside a <label>, the label sends a synthetic click to the internal checkbox
+    // after handleClick already ran. Stop that click from bubbling back up to prevent
+    // handleClick firing twice (which would cancel out the toggle).
+    const checkbox = this.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    checkbox.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+    });
   }
 }
 
