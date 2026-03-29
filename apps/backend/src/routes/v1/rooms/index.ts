@@ -1,6 +1,5 @@
 // apps/backend/src/routes/v1/rooms/index.ts
 
-import '../users';
 import { register } from '../../router';
 import { createRoom, getRoomById, listRooms, deleteRoom } from '../../../modules/rooms';
 import { getUser, extractBearer } from '../../../modules/users';

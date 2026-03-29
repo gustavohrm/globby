@@ -3,6 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { handle } from '../../router';
 import './index';
+import '../users/index';
 import type { Env } from '../../../../index';
 import type { Room } from '../../../modules/rooms';
 
