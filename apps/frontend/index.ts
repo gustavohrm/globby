@@ -1,63 +1,32 @@
 import { getOrCreateSession } from "./_core/services/session";
-import { showAlert } from "./_ui/scripts/alert";
 
-interface LobbyUser {
-  id: string;
-  username: string;
-  displayName: string | null;
-}
-
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-function avatarText(username: string): string {
-  return username.slice(0, 2).toUpperCase();
-}
-
-function renderLobby(users: LobbyUser[]): string {
-  if (users.length === 0) {
-    return '<p class="text-text-secondary">No one in the lobby yet.</p>';
-  }
-  const rows = users
-    .map(
-      (u) => `
-      <li class="flex items-center gap-3 rounded-lg bg-foreground p-3">
-        <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-contrast">
-          ${escapeHtml(avatarText(u.username))}
-        </div>
-        <div>
-          <div class="font-medium">${escapeHtml(u.username)}</div>
-          ${u.displayName ? `<div class="text-sm text-text-secondary">${escapeHtml(u.displayName)}</div>` : ""}
-        </div>
-      </li>`,
-    )
-    .join("");
-  return `<ul class="flex flex-col gap-2">${rows}</ul>`;
+interface PanelElement extends HTMLElement {
+  selectRoom(id: string): void;
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Pre-warm session so the panel's own getOrCreateSession call returns instantly.
+  // Errors are swallowed here — the panel handles its own session failure gracefully.
   try {
     await getOrCreateSession();
   } catch {
-    showAlert({
-      type: "error",
-      message: "Could not initialise session. Please reload.",
-      autoDismiss: false,
-      isDismissable: true,
-    });
-    return;
+    // ignore
   }
 
-  const lobbyEl = document.getElementById("lobby");
-  if (!lobbyEl) return;
+  const globe = document.getElementById("globe");
+  const panel = document.getElementById("panel") as PanelElement | null;
+  if (!globe || !panel) return;
 
-  try {
-    const res = await fetch("/api/v1/lobby/users");
-    if (!res.ok) throw new Error(`Lobby fetch failed: ${res.status}`);
-    const { users } = (await res.json()) as { users: LobbyUser[] };
-    lobbyEl.innerHTML = renderLobby(users);
-  } catch {
-    lobbyEl.textContent = "Failed to load lobby.";
-  }
+  // Beacon clicked on globe → highlight matching row in panel
+  globe.addEventListener("room-select", (e) => {
+    const { roomId } = (e as CustomEvent<{ roomId: string }>).detail;
+    globe.setAttribute("selected-room", roomId);
+    panel.selectRoom(roomId);
+  });
+
+  // Row clicked in panel → highlight matching beacon on globe
+  panel.addEventListener("room-select", (e) => {
+    const { roomId } = (e as CustomEvent<{ roomId: string }>).detail;
+    globe.setAttribute("selected-room", roomId);
+  });
 });
