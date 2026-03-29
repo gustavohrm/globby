@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { handle } from '../../router';
-import '../users/index';
-import './index';
-import type { Env } from '../../../../index';
+import { describe, it, expect } from "vitest";
+import { handle } from "../../router";
+import "../users/index";
+import "./index";
+import type { Env } from "../../../../index";
 
 function makeMockKV(): KVNamespace {
   const store = new Map<string, string>();
@@ -17,7 +17,7 @@ function makeMockKV(): KVNamespace {
       store.delete(key);
     },
     async list() {
-      return { keys: [], list_complete: true, cursor: '' };
+      return { keys: [], list_complete: true, cursor: "" };
     },
   } as unknown as KVNamespace;
 }
@@ -26,25 +26,25 @@ function makeEnv(kv: KVNamespace): Env {
   return { USERS_KV: kv } as unknown as Env;
 }
 
-describe('GET /api/v1/lobby/users', () => {
-  it('returns empty array when no public users exist', async () => {
+describe("GET /api/v1/lobby/users", () => {
+  it("returns empty array when no public users exist", async () => {
     const kv = makeMockKV();
-    const res = await handle(new Request('http://localhost/api/v1/lobby/users'), makeEnv(kv));
+    const res = await handle(new Request("http://localhost/api/v1/lobby/users"), makeEnv(kv));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ users: [] });
   });
 
-  it('returns public users after one opts in', async () => {
+  it("returns public users after one opts in", async () => {
     const kv = makeMockKV();
 
-    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+    const createRes = await handle(new Request("http://localhost/api/v1/users", { method: "POST" }), makeEnv(kv));
     const { id, secret } = (await createRes.json()) as { id: string; secret: string };
 
     await handle(
       new Request(`http://localhost/api/v1/users/${id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${secret}`,
         },
         body: JSON.stringify({ isPublic: true }),
@@ -52,27 +52,27 @@ describe('GET /api/v1/lobby/users', () => {
       makeEnv(kv),
     );
 
-    const res = await handle(new Request('http://localhost/api/v1/lobby/users'), makeEnv(kv));
+    const res = await handle(new Request("http://localhost/api/v1/lobby/users"), makeEnv(kv));
     expect(res.status).toBe(200);
     const body = (await res.json()) as { users: Array<{ id: string; username: string }> };
     expect(body.users).toHaveLength(1);
     expect(body.users[0].id).toBe(id);
-    expect(typeof body.users[0].username).toBe('string');
-    expect(body.users[0]).not.toHaveProperty('secret');
-    expect(body.users[0]).not.toHaveProperty('isPublic');
+    expect(typeof body.users[0].username).toBe("string");
+    expect(body.users[0]).not.toHaveProperty("secret");
+    expect(body.users[0]).not.toHaveProperty("isPublic");
   });
 
-  it('removes user from lobby when they set isPublic to false', async () => {
+  it("removes user from lobby when they set isPublic to false", async () => {
     const kv = makeMockKV();
 
-    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+    const createRes = await handle(new Request("http://localhost/api/v1/users", { method: "POST" }), makeEnv(kv));
     const { id, secret } = (await createRes.json()) as { id: string; secret: string };
 
     await handle(
       new Request(`http://localhost/api/v1/users/${id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${secret}`,
         },
         body: JSON.stringify({ isPublic: true }),
@@ -82,9 +82,9 @@ describe('GET /api/v1/lobby/users', () => {
 
     await handle(
       new Request(`http://localhost/api/v1/users/${id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${secret}`,
         },
         body: JSON.stringify({ isPublic: false }),
@@ -92,7 +92,7 @@ describe('GET /api/v1/lobby/users', () => {
       makeEnv(kv),
     );
 
-    const res = await handle(new Request('http://localhost/api/v1/lobby/users'), makeEnv(kv));
+    const res = await handle(new Request("http://localhost/api/v1/lobby/users"), makeEnv(kv));
     const body = (await res.json()) as { users: unknown[] };
     expect(body.users).toHaveLength(0);
   });

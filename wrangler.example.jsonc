@@ -25,7 +25,5 @@
       { "name": "ROOMS_REGISTRY", "class_name": "RoomsRegistry" },
     ],
   },
-  "migrations": [
-    { "tag": "v1", "new_classes": ["RoomDO", "RoomsRegistry"] },
-  ],
+  "migrations": [{ "tag": "v1", "new_classes": ["RoomDO", "RoomsRegistry"] }],
 }

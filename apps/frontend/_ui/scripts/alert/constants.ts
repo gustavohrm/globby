@@ -1,14 +1,14 @@
-import type { AlertType } from './index';
+import type { AlertType } from "./index";
 
 export const MAX_ALERTS = 5;
 export const DEFAULT_DURATION = 4000;
-export const DEFAULT_TYPE: AlertType = 'success';
+export const DEFAULT_TYPE: AlertType = "success";
 
 export const ALERT_COLORS: Record<AlertType, string> = {
-  success: 'bg-success-light text-success-dark border border-success',
-  error: 'bg-error-light text-error-dark border border-error',
-  warning: 'bg-warning-light text-warning-dark border border-warning',
-  info: 'bg-info-light text-info-dark border border-info',
+  success: "bg-success-light text-success-dark border border-success",
+  error: "bg-error-light text-error-dark border border-error",
+  warning: "bg-warning-light text-warning-dark border border-warning",
+  info: "bg-info-light text-info-dark border border-info",
 };
 
 export const ALERT_ICON_SVGS: Record<AlertType, string> = {
@@ -25,7 +25,7 @@ export const CLOSE_ICON_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 
 export const ALERT_BASE_CLASSES =
-  'px-3 py-2 rounded-lg font-medium font-default pointer-events-auto min-w-40 flex items-center gap-2';
+  "px-3 py-2 rounded-lg font-medium font-default pointer-events-auto min-w-40 flex items-center gap-2";
 
-export const CONTAINER_ID = 'global-alert-container';
-export const CONTAINER_CLASSES = 'fixed top-4 right-4 z-50 flex flex-col-reverse gap-2 pointer-events-none';
+export const CONTAINER_ID = "global-alert-container";
+export const CONTAINER_CLASSES = "fixed top-4 right-4 z-50 flex flex-col-reverse gap-2 pointer-events-none";

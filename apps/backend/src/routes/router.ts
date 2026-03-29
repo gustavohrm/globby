@@ -13,8 +13,8 @@ type Route<E extends object = object> = {
 export type RouteDefinition<E extends object = object> = Route<E>;
 
 function matchPath(pattern: string, pathname: string): Record<string, string> | null {
-  const patternParts = pattern.split('/');
-  const pathParts = pathname.split('/');
+  const patternParts = pattern.split("/");
+  const pathParts = pathname.split("/");
 
   if (patternParts.length !== pathParts.length) return null;
 
@@ -23,7 +23,7 @@ function matchPath(pattern: string, pathname: string): Record<string, string> | 
   for (let i = 0; i < patternParts.length; i++) {
     const p = patternParts[i];
     const v = pathParts[i];
-    if (p.startsWith(':')) {
+    if (p.startsWith(":")) {
       params[p.slice(1)] = v;
     } else if (p !== v) {
       return null;
@@ -58,7 +58,7 @@ class Router {
     const match = this.match(request.method, url.pathname);
 
     if (!match) {
-      return new Response('Not Found', { status: 404 });
+      return new Response("Not Found", { status: 404 });
     }
 
     return match.handler(request, match.params, env);

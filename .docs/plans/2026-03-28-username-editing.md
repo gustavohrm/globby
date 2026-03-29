@@ -35,8 +35,8 @@
 Create `apps/backend/src/modules/users/user.test.ts`:
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { createUser } from './user';
+import { describe, it, expect } from "vitest";
+import { createUser } from "./user";
 
 function makeMockKV(): KVNamespace {
   const store = new Map<string, string>();
@@ -51,20 +51,20 @@ function makeMockKV(): KVNamespace {
       store.delete(key);
     },
     async list() {
-      return { keys: [], list_complete: true, cursor: '' };
+      return { keys: [], list_complete: true, cursor: "" };
     },
   } as unknown as KVNamespace;
 }
 
-describe('createUser', () => {
-  it('creates a user with a unique username', async () => {
+describe("createUser", () => {
+  it("creates a user with a unique username", async () => {
     const kv = makeMockKV();
     const user = await createUser(kv);
-    expect(typeof user.username).toBe('string');
+    expect(typeof user.username).toBe("string");
     expect(user.username.length).toBeGreaterThan(0);
   });
 
-  it('creates multiple users all with unique usernames', async () => {
+  it("creates multiple users all with unique usernames", async () => {
     const kv = makeMockKV();
     const users: Awaited<ReturnType<typeof createUser>>[] = [];
     for (let i = 0; i < 20; i++) {
@@ -109,7 +109,7 @@ export async function createUser(kv: KVNamespace): Promise<User> {
   }
 
   if (!username) {
-    throw new Error('Could not generate a unique username after 10 attempts');
+    throw new Error("Could not generate a unique username after 10 attempts");
   }
 
   const user: User = {
@@ -158,50 +158,50 @@ git commit -m "fix: retry username generation up to 10 times on collision"
 Append to `apps/backend/src/modules/users/user.test.ts`:
 
 ```typescript
-import { changeUsername } from './user';
+import { changeUsername } from "./user";
 
-describe('changeUsername', () => {
-  it('returns updated user with new username', async () => {
+describe("changeUsername", () => {
+  it("returns updated user with new username", async () => {
     const kv = makeMockKV();
     const user = await createUser(kv);
-    const result = await changeUsername(kv, user, 'NewHandle-42');
-    expect(result).not.toBe('conflict');
-    if (result === 'conflict') return;
-    expect(result.username).toBe('NewHandle-42');
+    const result = await changeUsername(kv, user, "NewHandle-42");
+    expect(result).not.toBe("conflict");
+    if (result === "conflict") return;
+    expect(result.username).toBe("NewHandle-42");
   });
 
-  it('removes old username index entry', async () => {
+  it("removes old username index entry", async () => {
     const kv = makeMockKV();
     const user = await createUser(kv);
     const oldUsername = user.username;
-    const result = await changeUsername(kv, user, 'BrandNewName');
-    expect(result).not.toBe('conflict');
+    const result = await changeUsername(kv, user, "BrandNewName");
+    expect(result).not.toBe("conflict");
     expect(await kv.get(`username:${oldUsername}`)).toBeNull();
   });
 
-  it('adds new username index entry pointing to user id', async () => {
+  it("adds new username index entry pointing to user id", async () => {
     const kv = makeMockKV();
     const user = await createUser(kv);
-    const result = await changeUsername(kv, user, 'MyNewName');
-    expect(result).not.toBe('conflict');
-    if (result === 'conflict') return;
-    expect(await kv.get('username:MyNewName')).toBe(user.id);
+    const result = await changeUsername(kv, user, "MyNewName");
+    expect(result).not.toBe("conflict");
+    if (result === "conflict") return;
+    expect(await kv.get("username:MyNewName")).toBe(user.id);
   });
 
-  it('returns conflict when username is already taken', async () => {
+  it("returns conflict when username is already taken", async () => {
     const kv = makeMockKV();
     const userA = await createUser(kv);
     const userB = await createUser(kv);
     const result = await changeUsername(kv, userB, userA.username);
-    expect(result).toBe('conflict');
+    expect(result).toBe("conflict");
   });
 
-  it('returns user unchanged when new username matches current', async () => {
+  it("returns user unchanged when new username matches current", async () => {
     const kv = makeMockKV();
     const user = await createUser(kv);
     const result = await changeUsername(kv, user, user.username);
-    expect(result).not.toBe('conflict');
-    if (result === 'conflict') return;
+    expect(result).not.toBe("conflict");
+    if (result === "conflict") return;
     expect(result.username).toBe(user.username);
   });
 });
@@ -224,11 +224,11 @@ Add this function at the end of `apps/backend/src/modules/users/user.ts`, after 
 // claiming the same username can both pass the check below; the last write wins
 // on the index, leaving one user's record inconsistent. The risk is low for this
 // infrequent operation. Revisit when Durable Objects are introduced.
-export async function changeUsername(kv: KVNamespace, user: User, newUsername: string): Promise<User | 'conflict'> {
+export async function changeUsername(kv: KVNamespace, user: User, newUsername: string): Promise<User | "conflict"> {
   if (newUsername === user.username) return user;
 
   const existing = await kv.get(`username:${newUsername}`);
-  if (existing) return 'conflict';
+  if (existing) return "conflict";
 
   await kv.delete(`username:${user.username}`);
   await kv.put(`username:${newUsername}`, user.id);
@@ -245,7 +245,7 @@ export async function changeUsername(kv: KVNamespace, user: User, newUsername: s
 In `apps/backend/src/modules/users/index.ts`, replace line 2:
 
 ```typescript
-export { getUser, createUser, updateUser, getLobbyUsers, toPublicProfile, changeUsername } from './user';
+export { getUser, createUser, updateUser, getLobbyUsers, toPublicProfile, changeUsername } from "./user";
 ```
 
 - [ ] **Step 5: Run tests to verify they pass**
@@ -277,80 +277,80 @@ git commit -m "feat: add changeUsername with KV index swap and conflict detectio
 Append to the existing `describe('PATCH /api/v1/users/:id', ...)` block in `apps/backend/src/routes/v1/users/index.test.ts`:
 
 ```typescript
-it('updates username when field is present and valid', async () => {
+it("updates username when field is present and valid", async () => {
   const kv = makeMockKV();
-  const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const createRes = await handle(new Request("http://localhost/api/v1/users", { method: "POST" }), makeEnv(kv));
   const { id, secret } = (await createRes.json()) as { id: string; secret: string };
 
   const res = await handle(
     new Request(`http://localhost/api/v1/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-      body: JSON.stringify({ username: 'CoolHandle-99' }),
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${secret}` },
+      body: JSON.stringify({ username: "CoolHandle-99" }),
     }),
     makeEnv(kv),
   );
 
   expect(res.status).toBe(200);
   const body = (await res.json()) as Record<string, unknown>;
-  expect(body.username).toBe('CoolHandle-99');
+  expect(body.username).toBe("CoolHandle-99");
 });
 
-it('returns 409 when username is already taken', async () => {
+it("returns 409 when username is already taken", async () => {
   const kv = makeMockKV();
-  const resA = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const resA = await handle(new Request("http://localhost/api/v1/users", { method: "POST" }), makeEnv(kv));
   const { username: usernameA } = (await resA.json()) as { username: string };
 
-  const resB = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const resB = await handle(new Request("http://localhost/api/v1/users", { method: "POST" }), makeEnv(kv));
   const { id: idB, secret: secretB } = (await resB.json()) as { id: string; secret: string };
 
   const res = await handle(
     new Request(`http://localhost/api/v1/users/${idB}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secretB}` },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${secretB}` },
       body: JSON.stringify({ username: usernameA }),
     }),
     makeEnv(kv),
   );
 
   expect(res.status).toBe(409);
-  expect(await res.json()).toEqual({ error: 'Username already taken' });
+  expect(await res.json()).toEqual({ error: "Username already taken" });
 });
 
-it('returns 400 for username that is too short', async () => {
+it("returns 400 for username that is too short", async () => {
   const kv = makeMockKV();
-  const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const createRes = await handle(new Request("http://localhost/api/v1/users", { method: "POST" }), makeEnv(kv));
   const { id, secret } = (await createRes.json()) as { id: string; secret: string };
 
   const res = await handle(
     new Request(`http://localhost/api/v1/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-      body: JSON.stringify({ username: 'ab' }),
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${secret}` },
+      body: JSON.stringify({ username: "ab" }),
     }),
     makeEnv(kv),
   );
 
   expect(res.status).toBe(400);
-  expect(await res.json()).toEqual({ error: 'Invalid request body' });
+  expect(await res.json()).toEqual({ error: "Invalid request body" });
 });
 
-it('returns 400 for username with invalid characters', async () => {
+it("returns 400 for username with invalid characters", async () => {
   const kv = makeMockKV();
-  const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const createRes = await handle(new Request("http://localhost/api/v1/users", { method: "POST" }), makeEnv(kv));
   const { id, secret } = (await createRes.json()) as { id: string; secret: string };
 
   const res = await handle(
     new Request(`http://localhost/api/v1/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-      body: JSON.stringify({ username: 'bad name!' }),
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${secret}` },
+      body: JSON.stringify({ username: "bad name!" }),
     }),
     makeEnv(kv),
   );
 
   expect(res.status).toBe(400);
-  expect(await res.json()).toEqual({ error: 'Invalid request body' });
+  expect(await res.json()).toEqual({ error: "Invalid request body" });
 });
 ```
 
@@ -368,40 +368,40 @@ Replace the entire `register<Env>({ method: 'PATCH', ... })` block in `apps/back
 
 ```typescript
 register<Env>({
-  method: 'PATCH',
-  path: '/api/v1/users/:id',
+  method: "PATCH",
+  path: "/api/v1/users/:id",
   handler: async (req, params, env) => {
     const secret = extractBearer(req);
-    if (!secret) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!secret) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     let user = await getUser(env.USERS_KV, params.id);
-    if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
+    if (!user) return Response.json({ error: "User not found" }, { status: 404 });
 
     if (user.secret !== secret) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     let body: { username?: unknown; displayName?: unknown; isPublic?: unknown };
     try {
       body = await req.json();
     } catch {
-      return Response.json({ error: 'Invalid request body' }, { status: 400 });
+      return Response.json({ error: "Invalid request body" }, { status: 400 });
     }
 
     const USERNAME_RE = /^[a-zA-Z0-9-]{3,32}$/;
 
     if (
-      (body.username !== undefined && (typeof body.username !== 'string' || !USERNAME_RE.test(body.username))) ||
-      (body.displayName !== undefined && body.displayName !== null && typeof body.displayName !== 'string') ||
-      (body.isPublic !== undefined && typeof body.isPublic !== 'boolean')
+      (body.username !== undefined && (typeof body.username !== "string" || !USERNAME_RE.test(body.username))) ||
+      (body.displayName !== undefined && body.displayName !== null && typeof body.displayName !== "string") ||
+      (body.isPublic !== undefined && typeof body.isPublic !== "boolean")
     ) {
-      return Response.json({ error: 'Invalid request body' }, { status: 400 });
+      return Response.json({ error: "Invalid request body" }, { status: 400 });
     }
 
     if (body.username !== undefined) {
       const result = await changeUsername(env.USERS_KV, user, body.username as string);
-      if (result === 'conflict') {
-        return Response.json({ error: 'Username already taken' }, { status: 409 });
+      if (result === "conflict") {
+        return Response.json({ error: "Username already taken" }, { status: 409 });
       }
       user = result;
     }
@@ -428,7 +428,7 @@ import {
   toPublicProfile,
   extractBearer,
   changeUsername,
-} from '../../../modules/users';
+} from "../../../modules/users";
 ```
 
 - [ ] **Step 5: Run all backend tests**
@@ -459,7 +459,7 @@ git commit -m "feat: accept username in PATCH /api/v1/users/:id with conflict de
 In `apps/frontend/settings/index.ts`, remove this line (currently line 76):
 
 ```typescript
-document.getElementById('username-input')?.querySelector('input')?.setAttribute('readonly', '');
+document.getElementById("username-input")?.querySelector("input")?.setAttribute("readonly", "");
 ```
 
 - [ ] **Step 2: Replace the save handler body**
@@ -467,14 +467,14 @@ document.getElementById('username-input')?.querySelector('input')?.setAttribute(
 Replace the `saveBtn?.addEventListener('click', ...)` block (lines 90–118) with:
 
 ```typescript
-const saveBtn = document.getElementById('save-btn');
-saveBtn?.addEventListener('click', async () => {
-  document.getElementById('save-error')?.remove();
-  saveBtn.classList.add('loading');
+const saveBtn = document.getElementById("save-btn");
+saveBtn?.addEventListener("click", async () => {
+  document.getElementById("save-error")?.remove();
+  saveBtn.classList.add("loading");
 
-  const username = getInputValue('username-input');
-  const displayName = getInputValue('display-name-input') || null;
-  const isPublic = getToggleChecked('public-toggle');
+  const username = getInputValue("username-input");
+  const displayName = getInputValue("display-name-input") || null;
+  const isPublic = getToggleChecked("public-toggle");
 
   const patchBody: Record<string, unknown> = { displayName, isPublic };
   if (username !== original.username) {
@@ -483,9 +483,9 @@ saveBtn?.addEventListener('click', async () => {
 
   try {
     const res = await fetch(`/api/v1/users/${session.id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${session.secret}`,
       },
       body: JSON.stringify(patchBody),
@@ -496,15 +496,15 @@ saveBtn?.addEventListener('click', async () => {
       populateEditable(original);
     } else if (res.status === 409) {
       document
-        .querySelector('h1')
-        ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Username already taken.</p>');
+        .querySelector("h1")
+        ?.insertAdjacentHTML("afterend", '<p id="save-error" class="text-error">Username already taken.</p>');
     } else {
       document
-        .querySelector('h1')
-        ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Save failed. Please try again.</p>');
+        .querySelector("h1")
+        ?.insertAdjacentHTML("afterend", '<p id="save-error" class="text-error">Save failed. Please try again.</p>');
     }
   } finally {
-    saveBtn.classList.remove('loading');
+    saveBtn.classList.remove("loading");
   }
 });
 ```
@@ -517,9 +517,9 @@ Replace the `populateEditable` function (around lines 78–81):
 
 ```typescript
 function populateEditable(profile: UserProfile) {
-  setInputValue('username-input', profile.username);
-  setInputValue('display-name-input', profile.displayName ?? '');
-  setToggleChecked('public-toggle', profile.isPublic);
+  setInputValue("username-input", profile.username);
+  setInputValue("display-name-input", profile.displayName ?? "");
+  setToggleChecked("public-toggle", profile.isPublic);
 }
 ```
 

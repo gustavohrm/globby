@@ -1,16 +1,16 @@
-import { defineConfig } from 'vite';
-import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  root: './apps/frontend',
-  publicDir: './_public',
+  root: "./apps/frontend",
+  publicDir: "./_public",
   build: {
-    outDir: '../../dist',
+    outDir: "../../dist",
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        index: './apps/frontend/index.html',
-        settings: './apps/frontend/settings/index.html',
+        index: "./apps/frontend/index.html",
+        settings: "./apps/frontend/settings/index.html",
       },
     },
   },

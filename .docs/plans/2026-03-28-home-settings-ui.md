@@ -72,7 +72,7 @@ Replace the current body content:
 - [ ] **Step 2: Create `apps/frontend/index.ts`**
 
 ```typescript
-const SESSION_KEY = 'globby_session';
+const SESSION_KEY = "globby_session";
 
 interface Session {
   id: string;
@@ -89,7 +89,7 @@ async function getOrCreateSession(): Promise<Session> {
   const raw = localStorage.getItem(SESSION_KEY);
   if (raw) return JSON.parse(raw) as Session;
 
-  const res = await fetch('/api/v1/users', { method: 'POST' });
+  const res = await fetch("/api/v1/users", { method: "POST" });
   const data = (await res.json()) as { id: string; username: string; secret: string };
   const session: Session = { id: data.id, secret: data.secret };
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -113,26 +113,26 @@ function renderLobby(users: LobbyUser[]): string {
         </div>
         <div>
           <div class="font-medium">${u.username}</div>
-          ${u.displayName ? `<div class="text-sm text-text-secondary">${u.displayName}</div>` : ''}
+          ${u.displayName ? `<div class="text-sm text-text-secondary">${u.displayName}</div>` : ""}
         </div>
       </li>`,
     )
-    .join('');
+    .join("");
   return `<ul class="flex flex-col gap-2">${rows}</ul>`;
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener("DOMContentLoaded", async () => {
   await getOrCreateSession();
 
-  const lobbyEl = document.getElementById('lobby');
+  const lobbyEl = document.getElementById("lobby");
   if (!lobbyEl) return;
 
   try {
-    const res = await fetch('/api/v1/lobby/users');
+    const res = await fetch("/api/v1/lobby/users");
     const { users } = (await res.json()) as { users: LobbyUser[] };
     lobbyEl.innerHTML = renderLobby(users);
   } catch {
-    lobbyEl.textContent = 'Failed to load lobby.';
+    lobbyEl.textContent = "Failed to load lobby.";
   }
 });
 ```
@@ -190,7 +190,7 @@ Replace the body content with:
 - [ ] **Step 2: Create `apps/frontend/settings/index.ts`**
 
 ```typescript
-const SESSION_KEY = 'globby_session';
+const SESSION_KEY = "globby_session";
 
 interface Session {
   id: string;
@@ -208,7 +208,7 @@ async function getOrCreateSession(): Promise<Session> {
   const raw = localStorage.getItem(SESSION_KEY);
   if (raw) return JSON.parse(raw) as Session;
 
-  const res = await fetch('/api/v1/users', { method: 'POST' });
+  const res = await fetch("/api/v1/users", { method: "POST" });
   const data = (await res.json()) as { id: string; username: string; secret: string };
   const session: Session = { id: data.id, secret: data.secret };
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -218,54 +218,54 @@ async function getOrCreateSession(): Promise<Session> {
 function getInputValue(id: string): string {
   const el = document.getElementById(id);
   // Read from inner <input> for current value (attribute may lag behind if user hasn't blurred)
-  return el?.querySelector('input')?.value ?? el?.getAttribute('value') ?? '';
+  return el?.querySelector("input")?.value ?? el?.getAttribute("value") ?? "";
 }
 
 function setInputValue(id: string, value: string) {
-  document.getElementById(id)?.setAttribute('value', value);
+  document.getElementById(id)?.setAttribute("value", value);
 }
 
 function getToggleChecked(id: string): boolean {
-  return document.getElementById(id)?.getAttribute('checked') === 'true';
+  return document.getElementById(id)?.getAttribute("checked") === "true";
 }
 
 function setToggleChecked(id: string, value: boolean) {
-  document.getElementById(id)?.setAttribute('checked', String(value));
+  document.getElementById(id)?.setAttribute("checked", String(value));
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const session = await getOrCreateSession();
 
   const profileRes = await fetch(`/api/v1/users/${session.id}`);
   let original = (await profileRes.json()) as UserProfile;
 
   // Username is set once and made readonly — never updated again so re-render won't occur
-  setInputValue('username-input', original.username);
-  document.getElementById('username-input')?.querySelector('input')?.setAttribute('readonly', '');
+  setInputValue("username-input", original.username);
+  document.getElementById("username-input")?.querySelector("input")?.setAttribute("readonly", "");
 
   function populateEditable(profile: UserProfile) {
-    setInputValue('display-name-input', profile.displayName ?? '');
-    setToggleChecked('public-toggle', profile.isPublic);
+    setInputValue("display-name-input", profile.displayName ?? "");
+    setToggleChecked("public-toggle", profile.isPublic);
   }
 
   populateEditable(original);
 
-  document.getElementById('cancel-btn')?.addEventListener('click', () => {
+  document.getElementById("cancel-btn")?.addEventListener("click", () => {
     populateEditable(original);
   });
 
-  document.getElementById('save-btn')?.addEventListener('click', async () => {
-    const saveBtn = document.getElementById('save-btn');
-    saveBtn?.classList.add('loading');
+  document.getElementById("save-btn")?.addEventListener("click", async () => {
+    const saveBtn = document.getElementById("save-btn");
+    saveBtn?.classList.add("loading");
 
-    const displayName = getInputValue('display-name-input') || null;
-    const isPublic = getToggleChecked('public-toggle');
+    const displayName = getInputValue("display-name-input") || null;
+    const isPublic = getToggleChecked("public-toggle");
 
     try {
       const res = await fetch(`/api/v1/users/${session.id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${session.secret}`,
         },
         body: JSON.stringify({ displayName, isPublic }),
@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         populateEditable(original);
       }
     } finally {
-      saveBtn?.classList.remove('loading');
+      saveBtn?.classList.remove("loading");
     }
   });
 });

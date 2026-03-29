@@ -1,8 +1,8 @@
 // apps/backend/index.ts
 
-import { handle } from './src/routes';
+import { handle } from "./src/routes";
 
-export { RoomDO, RoomsRegistry } from './src/modules/rooms';
+export { RoomDO, RoomsRegistry } from "./src/modules/rooms";
 
 export interface Env {
   USERS_KV: KVNamespace;

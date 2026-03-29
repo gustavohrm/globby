@@ -1,4 +1,4 @@
-import { generateUsername, generateUsernameWithSuffix } from './username';
+import { generateUsername, generateUsernameWithSuffix } from "./username";
 
 export type User = {
   id: string;
@@ -9,15 +9,15 @@ export type User = {
   createdAt: string;
 };
 
-export type PublicUser = Pick<User, 'id' | 'username' | 'displayName' | 'isPublic'>;
+export type PublicUser = Pick<User, "id" | "username" | "displayName" | "isPublic">;
 
-export type LobbyUser = Pick<User, 'id' | 'username' | 'displayName'>;
+export type LobbyUser = Pick<User, "id" | "username" | "displayName">;
 
 function userKey(id: string): string {
   return `user:${id}`;
 }
 
-const LOBBY_KEY = 'lobby:users';
+const LOBBY_KEY = "lobby:users";
 
 export async function getUser(kv: KVNamespace, id: string): Promise<User | null> {
   const raw = await kv.get(userKey(id));
@@ -45,7 +45,7 @@ export async function createUser(kv: KVNamespace): Promise<User> {
   }
 
   if (!username) {
-    throw new Error('Could not generate a unique username after 10 attempts');
+    throw new Error("Could not generate a unique username after 10 attempts");
   }
 
   const user: User = {
@@ -102,7 +102,7 @@ export async function getLobbyUsers(kv: KVNamespace): Promise<LobbyUser[]> {
     .map(({ id, username, displayName }) => ({ id, username, displayName }));
 }
 
-export function toPublicProfile(user: User): Pick<User, 'id' | 'username' | 'displayName' | 'isPublic'> {
+export function toPublicProfile(user: User): Pick<User, "id" | "username" | "displayName" | "isPublic"> {
   return {
     id: user.id,
     username: user.username,
@@ -115,11 +115,11 @@ export function toPublicProfile(user: User): Pick<User, 'id' | 'username' | 'dis
 // claiming the same username can both pass the check below; the last write wins
 // on the index, leaving one user's record inconsistent. The risk is low for this
 // infrequent operation. Revisit when Durable Objects are introduced.
-export async function changeUsername(kv: KVNamespace, user: User, newUsername: string): Promise<User | 'conflict'> {
+export async function changeUsername(kv: KVNamespace, user: User, newUsername: string): Promise<User | "conflict"> {
   if (newUsername === user.username) return user;
 
   const existing = await kv.get(`username:${newUsername}`);
-  if (existing) return 'conflict';
+  if (existing) return "conflict";
 
   await kv.delete(`username:${user.username}`);
   await kv.put(`username:${newUsername}`, user.id);

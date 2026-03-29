@@ -4,7 +4,7 @@
 
     &.loading::after {
       @apply border-primary-contrast absolute inset-1/2 size-4 -translate-1/2 animate-spin rounded-full border-2 border-b-transparent;
-      content: '';
+      content: "";
     }
   }
 
@@ -19,16 +19,16 @@
   .tooltip {
     @apply relative;
 
-    &[data-tooltip-position='top']::after {
+    &[data-tooltip-position="top"]::after {
       @apply -top-2 left-1/2 origin-bottom -translate-x-1/2 -translate-y-full;
     }
-    &[data-tooltip-position='bottom']::after {
+    &[data-tooltip-position="bottom"]::after {
       @apply -bottom-2 left-1/2 origin-top -translate-x-1/2 translate-y-full;
     }
-    &[data-tooltip-position='left']::after {
+    &[data-tooltip-position="left"]::after {
       @apply top-1/2 -left-2 origin-right -translate-x-full -translate-y-1/2;
     }
-    &[data-tooltip-position='right']::after {
+    &[data-tooltip-position="right"]::after {
       @apply top-1/2 -right-2 origin-left translate-x-full -translate-y-1/2;
     }
 

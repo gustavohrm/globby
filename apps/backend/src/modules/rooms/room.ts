@@ -1,9 +1,9 @@
 // apps/backend/src/modules/rooms/room.ts
 
 export type Room = {
-  id: string;        // UUID — used in API routes and as DO name
-  code: string;      // 6-char uppercase alphanumeric, e.g. "X7K2MN"
-  name: string;      // 1–64 chars
+  id: string; // UUID — used in API routes and as DO name
+  code: string; // 6-char uppercase alphanumeric, e.g. "X7K2MN"
+  name: string; // 1–64 chars
   creatorId: string;
   createdAt: string; // ISO 8601
 };
@@ -12,10 +12,10 @@ export type Room = {
 // Code generation
 // ---------------------------------------------------------------------------
 
-const CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 export function generateRoomCode(): string {
-  let code = '';
+  let code = "";
   for (let i = 0; i < 6; i++) {
     code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
   }
@@ -39,20 +39,20 @@ export class RoomDO {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
-    if (request.method === 'GET' && url.pathname === '/') {
-      const room = await this.state.storage.get<Room>('room');
+    if (request.method === "GET" && url.pathname === "/") {
+      const room = await this.state.storage.get<Room>("room");
       if (!room) return new Response(null, { status: 404 });
       return Response.json(room);
     }
 
-    if (request.method === 'PUT' && url.pathname === '/') {
+    if (request.method === "PUT" && url.pathname === "/") {
       const room = (await request.json()) as Room;
-      await this.state.storage.put('room', room);
+      await this.state.storage.put("room", room);
       return new Response(null, { status: 204 });
     }
 
-    if (request.method === 'DELETE' && url.pathname === '/') {
-      await this.state.storage.delete('room');
+    if (request.method === "DELETE" && url.pathname === "/") {
+      await this.state.storage.delete("room");
       return new Response(null, { status: 204 });
     }
 
@@ -82,38 +82,38 @@ export class RoomsRegistry {
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
-    const parts = url.pathname.split('/').filter(Boolean);
+    const parts = url.pathname.split("/").filter(Boolean);
 
-    if (request.method === 'GET' && parts[0] === 'rooms' && !parts[1]) {
-      const rooms = (await this.state.storage.get<Room[]>('rooms')) ?? [];
+    if (request.method === "GET" && parts[0] === "rooms" && !parts[1]) {
+      const rooms = (await this.state.storage.get<Room[]>("rooms")) ?? [];
       return Response.json({ rooms });
     }
 
-    if (request.method === 'GET' && parts[0] === 'rooms' && parts[1]) {
-      const rooms = (await this.state.storage.get<Room[]>('rooms')) ?? [];
+    if (request.method === "GET" && parts[0] === "rooms" && parts[1]) {
+      const rooms = (await this.state.storage.get<Room[]>("rooms")) ?? [];
       const room = rooms.find((r) => r.id === parts[1]);
       if (!room) return new Response(null, { status: 404 });
       return Response.json(room);
     }
 
-    if (request.method === 'GET' && parts[0] === 'codes' && parts[1]) {
-      const rooms = (await this.state.storage.get<Room[]>('rooms')) ?? [];
+    if (request.method === "GET" && parts[0] === "codes" && parts[1]) {
+      const rooms = (await this.state.storage.get<Room[]>("rooms")) ?? [];
       const exists = rooms.some((r) => r.code === parts[1]);
       return new Response(null, { status: exists ? 200 : 404 });
     }
 
-    if (request.method === 'POST' && parts[0] === 'rooms') {
+    if (request.method === "POST" && parts[0] === "rooms") {
       const room = (await request.json()) as Room;
-      const rooms = (await this.state.storage.get<Room[]>('rooms')) ?? [];
+      const rooms = (await this.state.storage.get<Room[]>("rooms")) ?? [];
       rooms.push(room);
-      await this.state.storage.put('rooms', rooms);
+      await this.state.storage.put("rooms", rooms);
       return new Response(null, { status: 204 });
     }
 
-    if (request.method === 'DELETE' && parts[0] === 'rooms' && parts[1]) {
-      const rooms = (await this.state.storage.get<Room[]>('rooms')) ?? [];
+    if (request.method === "DELETE" && parts[0] === "rooms" && parts[1]) {
+      const rooms = (await this.state.storage.get<Room[]>("rooms")) ?? [];
       await this.state.storage.put(
-        'rooms',
+        "rooms",
         rooms.filter((r) => r.id !== parts[1]),
       );
       return new Response(null, { status: 204 });
@@ -129,14 +129,14 @@ export class RoomsRegistry {
 
 export async function getRoomById(rooms: DurableObjectNamespace, id: string): Promise<Room | null> {
   const stub = rooms.get(rooms.idFromName(id));
-  const res = await stub.fetch('https://do/');
+  const res = await stub.fetch("https://do/");
   if (res.status === 404) return null;
   return res.json() as Promise<Room>;
 }
 
 export async function listRooms(registry: DurableObjectNamespace): Promise<Room[]> {
-  const stub = registry.get(registry.idFromName('rooms-registry'));
-  const res = await stub.fetch('https://do/rooms');
+  const stub = registry.get(registry.idFromName("rooms-registry"));
+  const res = await stub.fetch("https://do/rooms");
   const { rooms } = (await res.json()) as { rooms: Room[] };
   return rooms;
 }
@@ -146,7 +146,7 @@ export async function createRoom(
   registry: DurableObjectNamespace,
   data: { name: string; creatorId: string },
 ): Promise<Room> {
-  const registryStub = registry.get(registry.idFromName('rooms-registry'));
+  const registryStub = registry.get(registry.idFromName("rooms-registry"));
 
   let code: string | null = null;
   for (let i = 0; i < 10; i++) {
@@ -157,7 +157,7 @@ export async function createRoom(
       break;
     }
   }
-  if (!code) throw new Error('Could not generate unique room code after 10 attempts');
+  if (!code) throw new Error("Could not generate unique room code after 10 attempts");
 
   const room: Room = {
     id: crypto.randomUUID(),
@@ -168,16 +168,16 @@ export async function createRoom(
   };
 
   const roomStub = rooms.get(rooms.idFromName(room.id));
-  await roomStub.fetch('https://do/', {
-    method: 'PUT',
+  await roomStub.fetch("https://do/", {
+    method: "PUT",
     body: JSON.stringify(room),
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
   });
 
-  await registryStub.fetch('https://do/rooms', {
-    method: 'POST',
+  await registryStub.fetch("https://do/rooms", {
+    method: "POST",
     body: JSON.stringify(room),
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
   });
 
   return room;
@@ -189,8 +189,8 @@ export async function deleteRoom(
   id: string,
 ): Promise<void> {
   const roomStub = rooms.get(rooms.idFromName(id));
-  await roomStub.fetch('https://do/', { method: 'DELETE' });
+  await roomStub.fetch("https://do/", { method: "DELETE" });
 
-  const registryStub = registry.get(registry.idFromName('rooms-registry'));
-  await registryStub.fetch(`https://do/rooms/${id}`, { method: 'DELETE' });
+  const registryStub = registry.get(registry.idFromName("rooms-registry"));
+  await registryStub.fetch(`https://do/rooms/${id}`, { method: "DELETE" });
 }

@@ -1,47 +1,47 @@
 class Toggle extends HTMLElement {
   private handleClick = () => {
-    const isChecked = this.getAttribute('checked') === 'true';
-    this.setAttribute('checked', String(!isChecked));
-    this.dispatchEvent(new Event('change', { bubbles: true }));
+    const isChecked = this.getAttribute("checked") === "true";
+    this.setAttribute("checked", String(!isChecked));
+    this.dispatchEvent(new Event("change", { bubbles: true }));
   };
 
   static get observedAttributes() {
-    return ['checked'];
+    return ["checked"];
   }
 
   connectedCallback() {
     this.render();
-    this.addEventListener('click', this.handleClick);
+    this.addEventListener("click", this.handleClick);
   }
 
   disconnectedCallback() {
-    this.removeEventListener('click', this.handleClick);
+    this.removeEventListener("click", this.handleClick);
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
-    if (name === 'checked' && oldValue !== newValue) {
+    if (name === "checked" && oldValue !== newValue) {
       const checkbox = this.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
       if (checkbox) {
-        checkbox.checked = newValue === 'true';
+        checkbox.checked = newValue === "true";
       }
     }
   }
 
   get checked(): boolean {
-    return this.getAttribute('checked') === 'true';
+    return this.getAttribute("checked") === "true";
   }
 
   set checked(value: boolean) {
-    this.setAttribute('checked', String(value));
+    this.setAttribute("checked", String(value));
   }
 
   private render() {
-    const isChecked = this.getAttribute('checked') === 'true';
+    const isChecked = this.getAttribute("checked") === "true";
 
-    this.style.display = 'flex';
+    this.style.display = "flex";
     this.innerHTML = `
       <div class="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" value="" class="sr-only peer" ${isChecked ? 'checked' : ''}>
+        <input type="checkbox" value="" class="sr-only peer" ${isChecked ? "checked" : ""}>
         <div class="w-11 h-6 bg-surface peer-focus:outline-none rounded-full transition-colors duration-400 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text after:rounded-full after:size-5 after:transition-transform peer-checked:bg-primary"></div>
       </div>
     `;
@@ -50,11 +50,11 @@ class Toggle extends HTMLElement {
     // after handleClick already ran. Stop that click from bubbling back up to prevent
     // handleClick firing twice (which would cancel out the toggle).
     const checkbox = this.querySelector('input[type="checkbox"]') as HTMLInputElement;
-    checkbox.addEventListener('click', (e) => {
+    checkbox.addEventListener("click", (e) => {
       e.stopPropagation();
       e.preventDefault();
     });
   }
 }
 
-customElements.define('app-toggle', Toggle);
+customElements.define("app-toggle", Toggle);

@@ -13,10 +13,7 @@ describe("getOrCreateSession", () => {
   });
 
   it("returns stored session without fetching when id and secret are present", async () => {
-    localStorage.setItem(
-      "globby_session",
-      JSON.stringify({ id: "stored-id", secret: "stored-secret" }),
-    );
+    localStorage.setItem("globby_session", JSON.stringify({ id: "stored-id", secret: "stored-secret" }));
     const fetchSpy = vi.spyOn(global, "fetch");
 
     const session = await getOrCreateSession();

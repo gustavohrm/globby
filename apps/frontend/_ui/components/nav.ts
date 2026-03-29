@@ -11,9 +11,9 @@ interface Page {
 }
 
 const PAGES: readonly Page[] = [
-  { label: 'Globby', icon: ICONS.globby, path: '/' },
-  { label: 'Chat', icon: ICONS.chat, path: '/chat/' },
-  { label: 'Settings', icon: ICONS.settings, path: '/settings/' },
+  { label: "Globby", icon: ICONS.globby, path: "/" },
+  { label: "Chat", icon: ICONS.chat, path: "/chat/" },
+  { label: "Settings", icon: ICONS.settings, path: "/settings/" },
 ];
 
 class Nav extends HTMLElement {
@@ -29,13 +29,13 @@ class Nav extends HTMLElement {
       return `
         <a
           href="${page.path}"
-          class="tooltip flex items-center gap-2 p-2 ${isActive ? 'text-primary bg-surface' : 'text-text-secondary'} size-10 rounded-full hover:bg-surface transition-colors duration-400"
+          class="tooltip flex items-center gap-2 p-2 ${isActive ? "text-primary bg-surface" : "text-text-secondary"} size-10 rounded-full hover:bg-surface transition-colors duration-400"
           data-tooltip="${page.label}"
           data-tooltip-position="top"
         >
           ${page.icon}
         </a>`;
-    }).join('');
+    }).join("");
 
     this.innerHTML = `
       <nav class="flex fixed bottom-0 left-1/2 -translate-x-1/2 items-center gap-4 rounded-full bg-foreground p-2 my-4">
@@ -45,4 +45,4 @@ class Nav extends HTMLElement {
   }
 }
 
-customElements.define('app-nav', Nav);
+customElements.define("app-nav", Nav);

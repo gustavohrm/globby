@@ -1,5 +1,5 @@
-import { getOrCreateSession } from './_core/services/session';
-import { showAlert } from './_ui/scripts/alert';
+import { getOrCreateSession } from "./_core/services/session";
+import { showAlert } from "./_ui/scripts/alert";
 
 interface LobbyUser {
   id: string;
@@ -8,7 +8,7 @@ interface LobbyUser {
 }
 
 function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function avatarText(username: string): string {
@@ -28,36 +28,36 @@ function renderLobby(users: LobbyUser[]): string {
         </div>
         <div>
           <div class="font-medium">${escapeHtml(u.username)}</div>
-          ${u.displayName ? `<div class="text-sm text-text-secondary">${escapeHtml(u.displayName)}</div>` : ''}
+          ${u.displayName ? `<div class="text-sm text-text-secondary">${escapeHtml(u.displayName)}</div>` : ""}
         </div>
       </li>`,
     )
-    .join('');
+    .join("");
   return `<ul class="flex flex-col gap-2">${rows}</ul>`;
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener("DOMContentLoaded", async () => {
   try {
     await getOrCreateSession();
   } catch {
     showAlert({
-      type: 'error',
-      message: 'Could not initialise session. Please reload.',
+      type: "error",
+      message: "Could not initialise session. Please reload.",
       autoDismiss: false,
       isDismissable: true,
     });
     return;
   }
 
-  const lobbyEl = document.getElementById('lobby');
+  const lobbyEl = document.getElementById("lobby");
   if (!lobbyEl) return;
 
   try {
-    const res = await fetch('/api/v1/lobby/users');
+    const res = await fetch("/api/v1/lobby/users");
     if (!res.ok) throw new Error(`Lobby fetch failed: ${res.status}`);
     const { users } = (await res.json()) as { users: LobbyUser[] };
     lobbyEl.innerHTML = renderLobby(users);
   } catch {
-    lobbyEl.textContent = 'Failed to load lobby.';
+    lobbyEl.textContent = "Failed to load lobby.";
   }
 });

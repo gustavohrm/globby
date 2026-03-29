@@ -17,17 +17,17 @@ Two Durable Objects:
 `Env` gains two new bindings:
 
 ```ts
-ROOMS: DurableObjectNamespace        // per-room DOs
-ROOMS_REGISTRY: DurableObjectNamespace  // single registry DO
+ROOMS: DurableObjectNamespace; // per-room DOs
+ROOMS_REGISTRY: DurableObjectNamespace; // single registry DO
 ```
 
 ## Data Model
 
 ```ts
 type Room = {
-  id: string;        // UUID — internal identifier, used in API routes and DO names
-  code: string;      // Short uppercase alphanumeric (e.g. "X7K2MN") — display/share identifier
-  name: string;      // 1–64 chars
+  id: string; // UUID — internal identifier, used in API routes and DO names
+  code: string; // Short uppercase alphanumeric (e.g. "X7K2MN") — display/share identifier
+  name: string; // 1–64 chars
   creatorId: string; // ID of the user who created the room
   createdAt: string; // ISO 8601
 };
@@ -45,21 +45,23 @@ type Room = {
 
 ## API Endpoints
 
-| Method   | Path                  | Auth            | Description                        |
-|----------|-----------------------|-----------------|------------------------------------|
-| `POST`   | `/api/v1/rooms`       | Bearer required | Create a room                      |
-| `GET`    | `/api/v1/rooms`       | None            | List all rooms                     |
-| `GET`    | `/api/v1/rooms/:id`   | None            | Get a single room by ID            |
-| `DELETE` | `/api/v1/rooms/:id`   | Bearer required | Delete a room (creator only)       |
+| Method   | Path                | Auth            | Description                  |
+| -------- | ------------------- | --------------- | ---------------------------- |
+| `POST`   | `/api/v1/rooms`     | Bearer required | Create a room                |
+| `GET`    | `/api/v1/rooms`     | None            | List all rooms               |
+| `GET`    | `/api/v1/rooms/:id` | None            | Get a single room by ID      |
+| `DELETE` | `/api/v1/rooms/:id` | Bearer required | Delete a room (creator only) |
 
 ### POST /api/v1/rooms
 
 Request body:
+
 ```json
 { "name": "My Room", "creatorId": "<userId>" }
 ```
 
 Validation:
+
 - `name` must be a non-empty string, max 64 chars.
 - `creatorId` must be a non-empty string.
 - Bearer token must match the secret of the user identified by `creatorId` (`extractBearer` + `getUser`).
@@ -69,6 +71,7 @@ Returns `201` with the full `Room` object.
 ### GET /api/v1/rooms
 
 No auth required. Returns `200`:
+
 ```json
 { "rooms": [ ...Room ] }
 ```

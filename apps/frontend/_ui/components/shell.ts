@@ -5,7 +5,7 @@ class Shell extends HTMLElement {
 
   render() {
     const html = this.innerHTML;
-    this.classList = 'flex flex-1 size-full';
+    this.classList = "flex flex-1 size-full";
     this.innerHTML = `
       <div class="flex flex-col items-center size-full">
         <main class="flex flex-col size-full flex-1 pb-22">${html}</main>
@@ -15,4 +15,4 @@ class Shell extends HTMLElement {
   }
 }
 
-customElements.define('app-shell', Shell);
+customElements.define("app-shell", Shell);

@@ -62,8 +62,8 @@ npm install -D jsdom
 Current file (`index.test.ts`):
 
 ```ts
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createStore } from './index';
+import { describe, it, expect, beforeEach } from "vitest";
+import { createStore } from "./index";
 
 // @vitest-environment jsdom
 ```
@@ -72,8 +72,8 @@ Replace with:
 
 ```ts
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createStore } from './index';
+import { describe, it, expect, beforeEach } from "vitest";
+import { createStore } from "./index";
 ```
 
 - [ ] **Step 3: Run the store tests and verify they pass**
@@ -108,10 +108,10 @@ Create `apps/frontend/_core/services/session/index.test.ts`:
 
 ```ts
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { getOrCreateSession } from './index';
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { getOrCreateSession } from "./index";
 
-describe('getOrCreateSession', () => {
+describe("getOrCreateSession", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.resetAllMocks();
@@ -121,39 +121,39 @@ describe('getOrCreateSession', () => {
     vi.restoreAllMocks();
   });
 
-  it('returns stored session without fetching when id and secret are present', async () => {
-    localStorage.setItem('globby_session', JSON.stringify({ id: 'stored-id', secret: 'stored-secret' }));
-    const fetchSpy = vi.spyOn(global, 'fetch');
+  it("returns stored session without fetching when id and secret are present", async () => {
+    localStorage.setItem("globby_session", JSON.stringify({ id: "stored-id", secret: "stored-secret" }));
+    const fetchSpy = vi.spyOn(global, "fetch");
 
     const session = await getOrCreateSession();
 
-    expect(session).toEqual({ id: 'stored-id', secret: 'stored-secret' });
+    expect(session).toEqual({ id: "stored-id", secret: "stored-secret" });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('POSTs to /api/v1/users and persists the result when storage is empty', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      json: async () => ({ id: 'new-id', username: 'cool-user', secret: 'new-secret' }),
+  it("POSTs to /api/v1/users and persists the result when storage is empty", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      json: async () => ({ id: "new-id", username: "cool-user", secret: "new-secret" }),
     } as Response);
 
     const session = await getOrCreateSession();
 
-    expect(session).toEqual({ id: 'new-id', secret: 'new-secret' });
-    expect(JSON.parse(localStorage.getItem('globby_session')!)).toEqual({
-      id: 'new-id',
-      secret: 'new-secret',
+    expect(session).toEqual({ id: "new-id", secret: "new-secret" });
+    expect(JSON.parse(localStorage.getItem("globby_session")!)).toEqual({
+      id: "new-id",
+      secret: "new-secret",
     });
   });
 
-  it('POSTs to /api/v1/users when stored session is missing id', async () => {
-    localStorage.setItem('globby_session', JSON.stringify({ id: '', secret: 'orphan' }));
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      json: async () => ({ id: 'fresh-id', username: 'user', secret: 'fresh-secret' }),
+  it("POSTs to /api/v1/users when stored session is missing id", async () => {
+    localStorage.setItem("globby_session", JSON.stringify({ id: "", secret: "orphan" }));
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      json: async () => ({ id: "fresh-id", username: "user", secret: "fresh-secret" }),
     } as Response);
 
     const session = await getOrCreateSession();
 
-    expect(session).toEqual({ id: 'fresh-id', secret: 'fresh-secret' });
+    expect(session).toEqual({ id: "fresh-id", secret: "fresh-secret" });
   });
 });
 ```
@@ -171,20 +171,20 @@ Expected: 3 failures with "Cannot find module './index'".
 Create `apps/frontend/_core/services/session/index.ts`:
 
 ```ts
-import { createStore } from '../../modules/store';
+import { createStore } from "../../modules/store";
 
 export interface Session {
   id: string;
   secret: string;
 }
 
-const store = createStore<Session>('globby_session', { id: '', secret: '' });
+const store = createStore<Session>("globby_session", { id: "", secret: "" });
 
 export async function getOrCreateSession(): Promise<Session> {
   const stored = store.get();
   if (stored.id && stored.secret) return stored;
 
-  const res = await fetch('/api/v1/users', { method: 'POST' });
+  const res = await fetch("/api/v1/users", { method: "POST" });
   const data = (await res.json()) as { id: string; username: string; secret: string };
   const session: Session = { id: data.id, secret: data.secret };
   store.set(session);
@@ -222,7 +222,7 @@ Remove the duplicated session code from `apps/frontend/index.ts` and import from
 Replace `apps/frontend/index.ts` with:
 
 ```ts
-import { getOrCreateSession } from './_core/services/session';
+import { getOrCreateSession } from "./_core/services/session";
 
 interface LobbyUser {
   id: string;
@@ -231,7 +231,7 @@ interface LobbyUser {
 }
 
 function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function avatarText(username: string): string {
@@ -251,27 +251,27 @@ function renderLobby(users: LobbyUser[]): string {
         </div>
         <div>
           <div class="font-medium">${escapeHtml(u.username)}</div>
-          ${u.displayName ? `<div class="text-sm text-text-secondary">${escapeHtml(u.displayName)}</div>` : ''}
+          ${u.displayName ? `<div class="text-sm text-text-secondary">${escapeHtml(u.displayName)}</div>` : ""}
         </div>
       </li>`,
     )
-    .join('');
+    .join("");
   return `<ul class="flex flex-col gap-2">${rows}</ul>`;
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener("DOMContentLoaded", async () => {
   await getOrCreateSession();
 
-  const lobbyEl = document.getElementById('lobby');
+  const lobbyEl = document.getElementById("lobby");
   if (!lobbyEl) return;
 
   try {
-    const res = await fetch('/api/v1/lobby/users');
+    const res = await fetch("/api/v1/lobby/users");
     if (!res.ok) throw new Error(`Lobby fetch failed: ${res.status}`);
     const { users } = (await res.json()) as { users: LobbyUser[] };
     lobbyEl.innerHTML = renderLobby(users);
   } catch {
-    lobbyEl.textContent = 'Failed to load lobby.';
+    lobbyEl.textContent = "Failed to load lobby.";
   }
 });
 
@@ -308,8 +308,8 @@ Remove duplicated session code and replace all inline DOM feedback with `showAle
 Replace `apps/frontend/settings/index.ts` with:
 
 ```ts
-import { getOrCreateSession, type Session } from '../_core/services/session';
-import { showAlert } from '../_ui/scripts/alert';
+import { getOrCreateSession, type Session } from "../_core/services/session";
+import { showAlert } from "../_ui/scripts/alert";
 
 interface UserProfile {
   id: string;
@@ -320,27 +320,27 @@ interface UserProfile {
 
 function getInputValue(id: string): string {
   const el = document.getElementById(id);
-  return el?.querySelector('input')?.value ?? el?.getAttribute('value') ?? '';
+  return el?.querySelector("input")?.value ?? el?.getAttribute("value") ?? "";
 }
 
 function setInputValue(id: string, value: string) {
-  document.getElementById(id)?.setAttribute('value', value);
+  document.getElementById(id)?.setAttribute("value", value);
 }
 
 function getToggleChecked(id: string): boolean {
-  return document.getElementById(id)?.getAttribute('checked') === 'true';
+  return document.getElementById(id)?.getAttribute("checked") === "true";
 }
 
 function setToggleChecked(id: string, value: boolean) {
-  document.getElementById(id)?.setAttribute('checked', String(value));
+  document.getElementById(id)?.setAttribute("checked", String(value));
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener("DOMContentLoaded", async () => {
   let session: Session;
   try {
     session = await getOrCreateSession();
   } catch {
-    showAlert({ type: 'error', message: 'Could not initialise session. Please reload.' });
+    showAlert({ type: "error", message: "Could not initialise session. Please reload." });
     return;
   }
 
@@ -350,29 +350,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!profileRes.ok) throw new Error(`Failed to load profile: ${profileRes.status}`);
     original = (await profileRes.json()) as UserProfile;
   } catch {
-    showAlert({ type: 'error', message: 'Could not load profile. Please reload.' });
+    showAlert({ type: "error", message: "Could not load profile. Please reload." });
     return;
   }
 
   function populateEditable(profile: UserProfile) {
-    setInputValue('username-input', profile.username);
-    setInputValue('display-name-input', profile.displayName ?? '');
-    setToggleChecked('public-toggle', profile.isPublic);
+    setInputValue("username-input", profile.username);
+    setInputValue("display-name-input", profile.displayName ?? "");
+    setToggleChecked("public-toggle", profile.isPublic);
   }
 
   populateEditable(original);
 
-  document.getElementById('cancel-btn')?.addEventListener('click', () => {
+  document.getElementById("cancel-btn")?.addEventListener("click", () => {
     populateEditable(original);
   });
 
-  const saveBtn = document.getElementById('save-btn');
-  saveBtn?.addEventListener('click', async () => {
-    saveBtn.classList.add('loading');
+  const saveBtn = document.getElementById("save-btn");
+  saveBtn?.addEventListener("click", async () => {
+    saveBtn.classList.add("loading");
 
-    const username = getInputValue('username-input');
-    const displayName = getInputValue('display-name-input') || null;
-    const isPublic = getToggleChecked('public-toggle');
+    const username = getInputValue("username-input");
+    const displayName = getInputValue("display-name-input") || null;
+    const isPublic = getToggleChecked("public-toggle");
 
     const patchBody: Record<string, unknown> = { displayName, isPublic };
     if (username !== original.username) {
@@ -381,9 +381,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const res = await fetch(`/api/v1/users/${session.id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${session.secret}`,
         },
         body: JSON.stringify(patchBody),
@@ -392,14 +392,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (res.ok) {
         original = (await res.json()) as UserProfile;
         populateEditable(original);
-        showAlert({ type: 'success', message: 'Settings saved.' });
+        showAlert({ type: "success", message: "Settings saved." });
       } else if (res.status === 409) {
-        showAlert({ type: 'error', message: 'Username already taken.' });
+        showAlert({ type: "error", message: "Username already taken." });
       } else {
-        showAlert({ type: 'error', message: 'Save failed. Please try again.' });
+        showAlert({ type: "error", message: "Save failed. Please try again." });
       }
     } finally {
-      saveBtn.classList.remove('loading');
+      saveBtn.classList.remove("loading");
     }
   });
 });
