@@ -110,3 +110,22 @@ export function toPublicProfile(user: User): Pick<User, 'id' | 'username' | 'dis
     isPublic: user.isPublic,
   };
 }
+
+// NOTE: Cloudflare KV has no atomic compare-and-swap. Two concurrent requests
+// claiming the same username can both pass the check below; the last write wins
+// on the index, leaving one user's record inconsistent. The risk is low for this
+// infrequent operation. Revisit when Durable Objects are introduced.
+export async function changeUsername(kv: KVNamespace, user: User, newUsername: string): Promise<User | 'conflict'> {
+  if (newUsername === user.username) return user;
+
+  const existing = await kv.get(`username:${newUsername}`);
+  if (existing) return 'conflict';
+
+  await kv.delete(`username:${user.username}`);
+  await kv.put(`username:${newUsername}`, user.id);
+
+  const updated: User = { ...user, username: newUsername };
+  await kv.put(userKey(updated.id), JSON.stringify(updated));
+
+  return updated;
+}
