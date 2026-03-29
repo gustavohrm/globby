@@ -53,7 +53,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     session = await getOrCreateSession();
   } catch {
-    document.querySelector('h1')?.insertAdjacentHTML('afterend', '<p class="text-error">Could not initialise session. Please reload.</p>');
+    document
+      .querySelector('h1')
+      ?.insertAdjacentHTML('afterend', '<p class="text-error">Could not initialise session. Please reload.</p>');
     return;
   }
 
@@ -63,18 +65,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!profileRes.ok) throw new Error(`Failed to load profile: ${profileRes.status}`);
     original = (await profileRes.json()) as UserProfile;
   } catch {
-    document.querySelector('h1')?.insertAdjacentHTML('afterend', '<p class="text-error">Could not load profile. Please reload.</p>');
+    document
+      .querySelector('h1')
+      ?.insertAdjacentHTML('afterend', '<p class="text-error">Could not load profile. Please reload.</p>');
     return;
   }
 
-  // Username is set once and made readonly — never updated again so re-render won't occur
-  setInputValue('username-input', original.username);
-  document
-    .getElementById('username-input')
-    ?.querySelector('input')
-    ?.setAttribute('readonly', '');
-
   function populateEditable(profile: UserProfile) {
+    setInputValue('username-input', profile.username);
     setInputValue('display-name-input', profile.displayName ?? '');
     setToggleChecked('public-toggle', profile.isPublic);
   }
@@ -90,8 +88,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('save-error')?.remove();
     saveBtn.classList.add('loading');
 
+    const username = getInputValue('username-input');
     const displayName = getInputValue('display-name-input') || null;
     const isPublic = getToggleChecked('public-toggle');
+
+    const patchBody: Record<string, unknown> = { displayName, isPublic };
+    if (username !== original.username) {
+      patchBody.username = username;
+    }
 
     try {
       const res = await fetch(`/api/v1/users/${session.id}`, {
@@ -100,14 +104,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.secret}`,
         },
-        body: JSON.stringify({ displayName, isPublic }),
+        body: JSON.stringify(patchBody),
       });
 
       if (res.ok) {
         original = (await res.json()) as UserProfile;
         populateEditable(original);
+      } else if (res.status === 409) {
+        document
+          .querySelector('h1')
+          ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Username already taken.</p>');
       } else {
-        document.querySelector('h1')?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Save failed. Please try again.</p>');
+        document
+          .querySelector('h1')
+          ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Save failed. Please try again.</p>');
       }
     } finally {
       saveBtn.classList.remove('loading');
