@@ -23,7 +23,7 @@ function makeMockKV(): KVNamespace {
 }
 
 function makeEnv(kv: KVNamespace): Env {
-  return { USERS_KV: kv };
+  return { USERS_KV: kv } as unknown as Env;
 }
 
 describe('GET /api/v1/lobby/users', () => {
