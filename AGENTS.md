@@ -30,6 +30,9 @@ npm run lint:fix          # Auto-fix formatting
 ## Structure
 
 ```
+.docs/                           # Centralized documentation
+  plans/                         # Implementation & action plans
+  specs/                         # Technical & implementation specifications
 apps/
   backend/
     index.ts                     # Worker entry point; exports Env interface and fetch handler
