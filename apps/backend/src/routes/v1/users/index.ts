@@ -1,5 +1,12 @@
 import { register } from '../../router';
-import { createUser, getUser, updateUser, toPublicProfile, extractBearer, changeUsername } from '../../../modules/users';
+import {
+  createUser,
+  getUser,
+  updateUser,
+  toPublicProfile,
+  extractBearer,
+  changeUsername,
+} from '../../../modules/users';
 import type { Env } from '../../../../index';
 
 register<Env>({
@@ -45,11 +52,8 @@ register<Env>({
     const USERNAME_RE = /^[a-zA-Z0-9-]{3,32}$/;
 
     if (
-      (body.username !== undefined &&
-        (typeof body.username !== 'string' || !USERNAME_RE.test(body.username))) ||
-      (body.displayName !== undefined &&
-        body.displayName !== null &&
-        typeof body.displayName !== 'string') ||
+      (body.username !== undefined && (typeof body.username !== 'string' || !USERNAME_RE.test(body.username))) ||
+      (body.displayName !== undefined && body.displayName !== null && typeof body.displayName !== 'string') ||
       (body.isPublic !== undefined && typeof body.isPublic !== 'boolean')
     ) {
       return Response.json({ error: 'Invalid request body' }, { status: 400 });

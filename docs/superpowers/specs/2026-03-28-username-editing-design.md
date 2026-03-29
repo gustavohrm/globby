@@ -33,6 +33,7 @@ Replace the one-shot fallback with a loop. Try a plain username first; on collis
 New export in `apps/backend/src/modules/users/user.ts`.
 
 **Contract:**
+
 - If `newUsername === user.username`, return the user unchanged (no-op).
 - Look up `username:{newUsername}` in KV. If it exists, return `'conflict'`.
 - Delete `username:{oldUsername}`.
@@ -51,6 +52,7 @@ Accept an optional `username` field in the request body alongside the existing `
 **Validation:** `/^[a-zA-Z0-9-]{3,32}$/` — alphanumeric and hyphens, 3–32 characters. Invalid value → `400 Bad Request`.
 
 **Flow:**
+
 1. Authenticate (existing logic).
 2. If `username` is present and valid, call `changeUsername`. On `'conflict'` → `409 Conflict` with `{ error: 'Username already taken' }`.
 3. Call `updateUser` for `displayName`/`isPublic` (existing logic, unchanged).
@@ -71,9 +73,9 @@ Both changes are applied in the same PATCH request.
 
 ## Files Changed
 
-| Action | Path |
-|--------|------|
-| Modify | `apps/backend/src/modules/users/user.ts` |
-| Modify | `apps/backend/src/routes/v1/users/index.ts` |
-| Modify | `apps/frontend/settings/index.ts` |
+| Action | Path                                             |
+| ------ | ------------------------------------------------ |
+| Modify | `apps/backend/src/modules/users/user.ts`         |
+| Modify | `apps/backend/src/routes/v1/users/index.ts`      |
+| Modify | `apps/frontend/settings/index.ts`                |
 | Modify | `apps/backend/src/routes/v1/users/index.test.ts` |

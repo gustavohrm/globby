@@ -48,5 +48,15 @@ describe("getOrCreateSession", () => {
     const session = await getOrCreateSession();
 
     expect(session).toEqual({ id: "fresh-id", secret: "fresh-secret" });
+    expect(JSON.parse(localStorage.getItem("globby_session")!)).toEqual({
+      id: "fresh-id",
+      secret: "fresh-secret",
+    });
+  });
+
+  it("throws when fetch rejects (network error)", async () => {
+    vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Network error"));
+
+    await expect(getOrCreateSession()).rejects.toThrow("Network error");
   });
 });

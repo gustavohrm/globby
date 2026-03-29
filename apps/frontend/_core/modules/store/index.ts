@@ -76,10 +76,7 @@ export interface Store<TSchema extends object> {
  * @param initialState - Fallback state used when nothing valid is stored.
  * @returns A typed store instance bound to the provided key.
  */
-export function createStore<TSchema extends object>(
-  storageKey: string,
-  initialState: TSchema,
-): Store<TSchema> {
+export function createStore<TSchema extends object>(storageKey: string, initialState: TSchema): Store<TSchema> {
   const readState = (): TSchema => {
     const raw = localStorage.getItem(storageKey);
 
@@ -113,10 +110,7 @@ export function createStore<TSchema extends object>(
     getItem<TKey extends keyof TSchema>(key: TKey): TSchema[TKey] | undefined {
       return readState()[key];
     },
-    setItem<TKey extends keyof TSchema>(
-      key: TKey,
-      value: TSchema[TKey],
-    ): TSchema {
+    setItem<TKey extends keyof TSchema>(key: TKey, value: TSchema[TKey]): TSchema {
       const nextState = { ...readState(), [key]: value } as TSchema;
       writeState(nextState);
       return nextState;

@@ -1,8 +1,8 @@
-import { DEFAULT_DURATION, MAX_ALERTS } from "./constants";
-import { getOrCreateContainer, createAlertElement } from "./dom";
-import { animateIn, animateOut } from "./animations";
+import { DEFAULT_DURATION, MAX_ALERTS } from './constants';
+import { getOrCreateContainer, createAlertElement } from './dom';
+import { animateIn, animateOut } from './animations';
 
-type AlertType = "success" | "error" | "warning" | "info";
+type AlertType = 'success' | 'error' | 'warning' | 'info';
 interface AlertOptions {
   message: string;
   type?: AlertType;
@@ -55,4 +55,4 @@ export function showAlert(options: AlertOptions): void {
 }
 
 export type { AlertType, AlertOptions };
-export { DEFAULT_TYPE, DEFAULT_DURATION, MAX_ALERTS } from "./constants";
+export { DEFAULT_TYPE, DEFAULT_DURATION, MAX_ALERTS } from './constants';

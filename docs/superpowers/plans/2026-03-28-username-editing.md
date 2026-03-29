@@ -12,20 +12,21 @@
 
 ## File Map
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Modify | `apps/backend/src/modules/users/user.ts` | Fix `createUser` retry loop; add `changeUsername` |
-| Create | `apps/backend/src/modules/users/user.test.ts` | Unit tests for `createUser` uniqueness and `changeUsername` |
-| Modify | `apps/backend/src/modules/users/index.ts` | Re-export `changeUsername` |
-| Modify | `apps/backend/src/routes/v1/users/index.ts` | Accept `username` in PATCH body, call `changeUsername` |
-| Modify | `apps/backend/src/routes/v1/users/index.test.ts` | Route-level tests for username PATCH |
-| Modify | `apps/frontend/settings/index.ts` | Remove readonly, include username in save, handle 409 |
+| Action | Path                                             | Responsibility                                              |
+| ------ | ------------------------------------------------ | ----------------------------------------------------------- |
+| Modify | `apps/backend/src/modules/users/user.ts`         | Fix `createUser` retry loop; add `changeUsername`           |
+| Create | `apps/backend/src/modules/users/user.test.ts`    | Unit tests for `createUser` uniqueness and `changeUsername` |
+| Modify | `apps/backend/src/modules/users/index.ts`        | Re-export `changeUsername`                                  |
+| Modify | `apps/backend/src/routes/v1/users/index.ts`      | Accept `username` in PATCH body, call `changeUsername`      |
+| Modify | `apps/backend/src/routes/v1/users/index.test.ts` | Route-level tests for username PATCH                        |
+| Modify | `apps/frontend/settings/index.ts`                | Remove readonly, include username in save, handle 409       |
 
 ---
 
 ## Task 1: Fix `createUser` collision retry loop
 
 **Files:**
+
 - Modify: `apps/backend/src/modules/users/user.ts`
 - Create: `apps/backend/src/modules/users/user.test.ts`
 
@@ -147,6 +148,7 @@ git commit -m "fix: retry username generation up to 10 times on collision"
 ## Task 2: Add `changeUsername` function
 
 **Files:**
+
 - Modify: `apps/backend/src/modules/users/user.ts`
 - Modify: `apps/backend/src/modules/users/user.test.ts`
 - Modify: `apps/backend/src/modules/users/index.ts`
@@ -266,6 +268,7 @@ git commit -m "feat: add changeUsername with KV index swap and conflict detectio
 ## Task 3: Extend PATCH route to accept `username`
 
 **Files:**
+
 - Modify: `apps/backend/src/routes/v1/users/index.ts`
 - Modify: `apps/backend/src/routes/v1/users/index.test.ts`
 
@@ -274,81 +277,81 @@ git commit -m "feat: add changeUsername with KV index swap and conflict detectio
 Append to the existing `describe('PATCH /api/v1/users/:id', ...)` block in `apps/backend/src/routes/v1/users/index.test.ts`:
 
 ```typescript
-  it('updates username when field is present and valid', async () => {
-    const kv = makeMockKV();
-    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
-    const { id, secret } = (await createRes.json()) as { id: string; secret: string };
+it('updates username when field is present and valid', async () => {
+  const kv = makeMockKV();
+  const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const { id, secret } = (await createRes.json()) as { id: string; secret: string };
 
-    const res = await handle(
-      new Request(`http://localhost/api/v1/users/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-        body: JSON.stringify({ username: 'CoolHandle-99' }),
-      }),
-      makeEnv(kv),
-    );
+  const res = await handle(
+    new Request(`http://localhost/api/v1/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+      body: JSON.stringify({ username: 'CoolHandle-99' }),
+    }),
+    makeEnv(kv),
+  );
 
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as Record<string, unknown>;
-    expect(body.username).toBe('CoolHandle-99');
-  });
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as Record<string, unknown>;
+  expect(body.username).toBe('CoolHandle-99');
+});
 
-  it('returns 409 when username is already taken', async () => {
-    const kv = makeMockKV();
-    const resA = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
-    const { username: usernameA } = (await resA.json()) as { username: string };
+it('returns 409 when username is already taken', async () => {
+  const kv = makeMockKV();
+  const resA = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const { username: usernameA } = (await resA.json()) as { username: string };
 
-    const resB = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
-    const { id: idB, secret: secretB } = (await resB.json()) as { id: string; secret: string };
+  const resB = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const { id: idB, secret: secretB } = (await resB.json()) as { id: string; secret: string };
 
-    const res = await handle(
-      new Request(`http://localhost/api/v1/users/${idB}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secretB}` },
-        body: JSON.stringify({ username: usernameA }),
-      }),
-      makeEnv(kv),
-    );
+  const res = await handle(
+    new Request(`http://localhost/api/v1/users/${idB}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secretB}` },
+      body: JSON.stringify({ username: usernameA }),
+    }),
+    makeEnv(kv),
+  );
 
-    expect(res.status).toBe(409);
-    expect(await res.json()).toEqual({ error: 'Username already taken' });
-  });
+  expect(res.status).toBe(409);
+  expect(await res.json()).toEqual({ error: 'Username already taken' });
+});
 
-  it('returns 400 for username that is too short', async () => {
-    const kv = makeMockKV();
-    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
-    const { id, secret } = (await createRes.json()) as { id: string; secret: string };
+it('returns 400 for username that is too short', async () => {
+  const kv = makeMockKV();
+  const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const { id, secret } = (await createRes.json()) as { id: string; secret: string };
 
-    const res = await handle(
-      new Request(`http://localhost/api/v1/users/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-        body: JSON.stringify({ username: 'ab' }),
-      }),
-      makeEnv(kv),
-    );
+  const res = await handle(
+    new Request(`http://localhost/api/v1/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+      body: JSON.stringify({ username: 'ab' }),
+    }),
+    makeEnv(kv),
+  );
 
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: 'Invalid request body' });
-  });
+  expect(res.status).toBe(400);
+  expect(await res.json()).toEqual({ error: 'Invalid request body' });
+});
 
-  it('returns 400 for username with invalid characters', async () => {
-    const kv = makeMockKV();
-    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
-    const { id, secret } = (await createRes.json()) as { id: string; secret: string };
+it('returns 400 for username with invalid characters', async () => {
+  const kv = makeMockKV();
+  const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+  const { id, secret } = (await createRes.json()) as { id: string; secret: string };
 
-    const res = await handle(
-      new Request(`http://localhost/api/v1/users/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-        body: JSON.stringify({ username: 'bad name!' }),
-      }),
-      makeEnv(kv),
-    );
+  const res = await handle(
+    new Request(`http://localhost/api/v1/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+      body: JSON.stringify({ username: 'bad name!' }),
+    }),
+    makeEnv(kv),
+  );
 
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: 'Invalid request body' });
-  });
+  expect(res.status).toBe(400);
+  expect(await res.json()).toEqual({ error: 'Invalid request body' });
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -388,11 +391,8 @@ register<Env>({
     const USERNAME_RE = /^[a-zA-Z0-9-]{3,32}$/;
 
     if (
-      (body.username !== undefined &&
-        (typeof body.username !== 'string' || !USERNAME_RE.test(body.username))) ||
-      (body.displayName !== undefined &&
-        body.displayName !== null &&
-        typeof body.displayName !== 'string') ||
+      (body.username !== undefined && (typeof body.username !== 'string' || !USERNAME_RE.test(body.username))) ||
+      (body.displayName !== undefined && body.displayName !== null && typeof body.displayName !== 'string') ||
       (body.isPublic !== undefined && typeof body.isPublic !== 'boolean')
     ) {
       return Response.json({ error: 'Invalid request body' }, { status: 400 });
@@ -421,7 +421,14 @@ register<Env>({
 In `apps/backend/src/routes/v1/users/index.ts`, replace line 2:
 
 ```typescript
-import { createUser, getUser, updateUser, toPublicProfile, extractBearer, changeUsername } from '../../../modules/users';
+import {
+  createUser,
+  getUser,
+  updateUser,
+  toPublicProfile,
+  extractBearer,
+  changeUsername,
+} from '../../../modules/users';
 ```
 
 - [ ] **Step 5: Run all backend tests**
@@ -444,6 +451,7 @@ git commit -m "feat: accept username in PATCH /api/v1/users/:id with conflict de
 ## Task 4: Make username editable in settings UI
 
 **Files:**
+
 - Modify: `apps/frontend/settings/index.ts`
 
 - [ ] **Step 1: Remove the `readonly` attribute**
@@ -459,46 +467,46 @@ document.getElementById('username-input')?.querySelector('input')?.setAttribute(
 Replace the `saveBtn?.addEventListener('click', ...)` block (lines 90–118) with:
 
 ```typescript
-  const saveBtn = document.getElementById('save-btn');
-  saveBtn?.addEventListener('click', async () => {
-    document.getElementById('save-error')?.remove();
-    saveBtn.classList.add('loading');
+const saveBtn = document.getElementById('save-btn');
+saveBtn?.addEventListener('click', async () => {
+  document.getElementById('save-error')?.remove();
+  saveBtn.classList.add('loading');
 
-    const username = getInputValue('username-input');
-    const displayName = getInputValue('display-name-input') || null;
-    const isPublic = getToggleChecked('public-toggle');
+  const username = getInputValue('username-input');
+  const displayName = getInputValue('display-name-input') || null;
+  const isPublic = getToggleChecked('public-toggle');
 
-    const patchBody: Record<string, unknown> = { displayName, isPublic };
-    if (username !== original.username) {
-      patchBody.username = username;
+  const patchBody: Record<string, unknown> = { displayName, isPublic };
+  if (username !== original.username) {
+    patchBody.username = username;
+  }
+
+  try {
+    const res = await fetch(`/api/v1/users/${session.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.secret}`,
+      },
+      body: JSON.stringify(patchBody),
+    });
+
+    if (res.ok) {
+      original = (await res.json()) as UserProfile;
+      populateEditable(original);
+    } else if (res.status === 409) {
+      document
+        .querySelector('h1')
+        ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Username already taken.</p>');
+    } else {
+      document
+        .querySelector('h1')
+        ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Save failed. Please try again.</p>');
     }
-
-    try {
-      const res = await fetch(`/api/v1/users/${session.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.secret}`,
-        },
-        body: JSON.stringify(patchBody),
-      });
-
-      if (res.ok) {
-        original = (await res.json()) as UserProfile;
-        populateEditable(original);
-      } else if (res.status === 409) {
-        document
-          .querySelector('h1')
-          ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Username already taken.</p>');
-      } else {
-        document
-          .querySelector('h1')
-          ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Save failed. Please try again.</p>');
-      }
-    } finally {
-      saveBtn.classList.remove('loading');
-    }
-  });
+  } finally {
+    saveBtn.classList.remove('loading');
+  }
+});
 ```
 
 - [ ] **Step 3: Update `populateEditable` to also populate the username field**
@@ -508,11 +516,11 @@ The `populateEditable` function currently only populates `display-name-input` an
 Replace the `populateEditable` function (around lines 78–81):
 
 ```typescript
-  function populateEditable(profile: UserProfile) {
-    setInputValue('username-input', profile.username);
-    setInputValue('display-name-input', profile.displayName ?? '');
-    setToggleChecked('public-toggle', profile.isPublic);
-  }
+function populateEditable(profile: UserProfile) {
+  setInputValue('username-input', profile.username);
+  setInputValue('display-name-input', profile.displayName ?? '');
+  setToggleChecked('public-toggle', profile.isPublic);
+}
 ```
 
 And remove the now-redundant `setInputValue('username-input', original.username)` call on line 75 — `populateEditable(original)` on line 83 will cover it.

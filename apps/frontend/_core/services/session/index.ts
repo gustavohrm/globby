@@ -5,6 +5,7 @@ export interface Session {
   secret: string;
 }
 
+// empty strings are falsy — the guard below relies on this
 const store = createStore<Session>("globby_session", { id: "", secret: "" });
 
 export async function getOrCreateSession(): Promise<Session> {
@@ -13,6 +14,7 @@ export async function getOrCreateSession(): Promise<Session> {
 
   const res = await fetch("/api/v1/users", { method: "POST" });
   const data = (await res.json()) as { id: string; username: string; secret: string };
+  // username is not stored — it can change and is fetched fresh when needed
   const session: Session = { id: data.id, secret: data.secret };
   store.set(session);
   return session;

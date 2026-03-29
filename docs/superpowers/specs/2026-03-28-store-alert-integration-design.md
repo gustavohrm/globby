@@ -20,11 +20,11 @@ Neither is used by the app yet. `apps/frontend/index.ts` and `apps/frontend/sett
 
 Three layers:
 
-| Layer | Location | Responsibility |
-|---|---|---|
-| Module | `_core/modules/store/` | Typed localStorage wrapper (already done) |
-| Service | `_core/services/session/` | Session business logic and persistence |
-| Page logic | `apps/frontend/*.ts` | User-facing orchestration |
+| Layer      | Location                  | Responsibility                            |
+| ---------- | ------------------------- | ----------------------------------------- |
+| Module     | `_core/modules/store/`    | Typed localStorage wrapper (already done) |
+| Service    | `_core/services/session/` | Session business logic and persistence    |
+| Page logic | `apps/frontend/*.ts`      | User-facing orchestration                 |
 
 ---
 
@@ -61,13 +61,13 @@ Owns the session storage key, `Session` type, and `getOrCreateSession()` workflo
 - Add imports: `getOrCreateSession` from `_core/services/session`, `showAlert` from `_ui/scripts/alert`
 - Replace all inline DOM error feedback with `showAlert` calls:
 
-| Trigger | Alert |
-|---|---|
+| Trigger              | Alert                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------- |
 | Session init failure | `showAlert({ type: 'error', message: 'Could not initialise session. Please reload.' })` |
-| Profile load failure | `showAlert({ type: 'error', message: 'Could not load profile. Please reload.' })` |
-| Save success | `showAlert({ type: 'success', message: 'Settings saved.' })` |
-| Save 409 conflict | `showAlert({ type: 'error', message: 'Username already taken.' })` |
-| Save other error | `showAlert({ type: 'error', message: 'Save failed. Please try again.' })` |
+| Profile load failure | `showAlert({ type: 'error', message: 'Could not load profile. Please reload.' })`       |
+| Save success         | `showAlert({ type: 'success', message: 'Settings saved.' })`                            |
+| Save 409 conflict    | `showAlert({ type: 'error', message: 'Username already taken.' })`                      |
+| Save other error     | `showAlert({ type: 'error', message: 'Save failed. Please try again.' })`               |
 
 ---
 
