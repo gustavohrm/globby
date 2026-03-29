@@ -12,20 +12,21 @@
 
 ## File Map
 
-| Action | Path | Responsibility |
-|---|---|---|
-| Create | `apps/frontend/_ui/components/globe.ts` | `<app-globe>` — Three.js globe, beacons, drag, raycasting |
-| Create | `apps/frontend/_ui/components/rooms-panel.ts` | `<rooms-panel>` — room list, create, delete, stats |
-| Modify | `apps/frontend/_ui/components/index.ts` | Register both new components |
-| Modify | `apps/frontend/index.html` | Fullscreen globe + overlay panel layout |
-| Modify | `apps/frontend/index.ts` | Thin coordinator — session pre-warm + cross-component wiring |
-| Modify | `package.json` | Add `three` dependency |
+| Action | Path                                          | Responsibility                                               |
+| ------ | --------------------------------------------- | ------------------------------------------------------------ |
+| Create | `apps/frontend/_ui/components/globe.ts`       | `<app-globe>` — Three.js globe, beacons, drag, raycasting    |
+| Create | `apps/frontend/_ui/components/rooms-panel.ts` | `<rooms-panel>` — room list, create, delete, stats           |
+| Modify | `apps/frontend/_ui/components/index.ts`       | Register both new components                                 |
+| Modify | `apps/frontend/index.html`                    | Fullscreen globe + overlay panel layout                      |
+| Modify | `apps/frontend/index.ts`                      | Thin coordinator — session pre-warm + cross-component wiring |
+| Modify | `package.json`                                | Add `three` dependency                                       |
 
 ---
 
 ## Task 1: Install Three.js
 
 **Files:**
+
 - Modify: `package.json`
 
 - [ ] **Install Three.js**
@@ -54,6 +55,7 @@ git commit -m "chore: add three.js dependency"
 ## Task 2: Create `<app-globe>` component
 
 **Files:**
+
 - Create: `apps/frontend/_ui/components/globe.ts`
 
 - [ ] **Create `apps/frontend/_ui/components/globe.ts` with the full content below**
@@ -71,8 +73,8 @@ function hashRoomId(id: string): [number, number] {
   let h2 = 0xdeadbeef;
   for (let i = 0; i < id.length; i++) {
     const c = id.charCodeAt(i);
-    h1 = (Math.imul(h1 ^ c, 0x01000193) >>> 0);
-    h2 = (Math.imul(h2 ^ c, 0x01000193) >>> 0);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ c, 0x01000193) >>> 0;
   }
   const lat = ((h1 % 140) - 70) * (Math.PI / 180);
   const lon = ((h2 % 360) - 180) * (Math.PI / 180);
@@ -80,11 +82,7 @@ function hashRoomId(id: string): [number, number] {
 }
 
 function latLonToVec3(lat: number, lon: number, r: number): THREE.Vector3 {
-  return new THREE.Vector3(
-    r * Math.cos(lat) * Math.sin(lon),
-    r * Math.sin(lat),
-    r * Math.cos(lat) * Math.cos(lon),
-  );
+  return new THREE.Vector3(r * Math.cos(lat) * Math.sin(lon), r * Math.sin(lat), r * Math.cos(lat) * Math.cos(lon));
 }
 
 type BeaconEntry = { pole: THREE.Mesh; ring: THREE.Mesh; ringMat: THREE.MeshBasicMaterial; t: number };
@@ -389,6 +387,7 @@ git commit -m "feat: add app-globe Three.js web component"
 ## Task 3: Create `<rooms-panel>` component
 
 **Files:**
+
 - Create: `apps/frontend/_ui/components/rooms-panel.ts`
 
 - [ ] **Create `apps/frontend/_ui/components/rooms-panel.ts` with the full content below**
@@ -427,10 +426,7 @@ class RoomsPanel extends HTMLElement {
 
   private async fetchData() {
     try {
-      const [roomsRes, usersRes] = await Promise.all([
-        fetch("/api/v1/rooms"),
-        fetch("/api/v1/lobby/users"),
-      ]);
+      const [roomsRes, usersRes] = await Promise.all([fetch("/api/v1/rooms"), fetch("/api/v1/lobby/users")]);
       if (roomsRes.ok) {
         const { rooms } = (await roomsRes.json()) as { rooms: Room[] };
         this.rooms = rooms;
@@ -607,6 +603,7 @@ git commit -m "feat: add rooms-panel web component"
 ## Task 4: Register new components
 
 **Files:**
+
 - Modify: `apps/frontend/_ui/components/index.ts`
 
 - [ ] **Replace the full content of `apps/frontend/_ui/components/index.ts`**
@@ -632,6 +629,7 @@ git commit -m "feat: register app-globe and rooms-panel components"
 ## Task 5: Rewrite `index.html`
 
 **Files:**
+
 - Modify: `apps/frontend/index.html`
 
 - [ ] **Replace the full content of `apps/frontend/index.html`**
@@ -653,7 +651,7 @@ git commit -m "feat: register app-globe and rooms-panel components"
     <app-shell>
       <div class="relative size-full overflow-hidden">
         <app-globe id="globe" class="absolute inset-0"></app-globe>
-        <rooms-panel id="panel" open class="absolute top-0 right-0 h-full z-10"></rooms-panel>
+        <rooms-panel id="panel" open class="absolute top-0 right-0 z-10 h-full"></rooms-panel>
       </div>
     </app-shell>
   </body>
@@ -672,6 +670,7 @@ git commit -m "feat: redesign lobby layout with fullscreen globe and side panel"
 ## Task 6: Rewrite `index.ts` coordinator
 
 **Files:**
+
 - Modify: `apps/frontend/index.ts`
 
 - [ ] **Replace the full content of `apps/frontend/index.ts`**

@@ -31,14 +31,14 @@ The home page (`/`) becomes a fullscreen experience:
 
 ### Attributes
 
-| Attribute | Type | Description |
-|---|---|---|
+| Attribute       | Type     | Description                                                       |
+| --------------- | -------- | ----------------------------------------------------------------- |
 | `selected-room` | `string` | Room ID of the beacon to highlight. Set externally by `index.ts`. |
 
 ### Events Dispatched
 
-| Event | Detail | Description |
-|---|---|---|
+| Event         | Detail               | Description                     |
+| ------------- | -------------------- | ------------------------------- |
 | `room-select` | `{ roomId: string }` | Fired when user clicks a beacon |
 
 ### Visual Specification
@@ -82,26 +82,27 @@ Each room is represented by a beacon at a deterministic position on the globe:
 
 ### Attributes
 
-| Attribute | Type | Description |
-|---|---|---|
-| `open` | `boolean` | Initial open state. Toggled internally by the user. |
+| Attribute | Type      | Description                                         |
+| --------- | --------- | --------------------------------------------------- |
+| `open`    | `boolean` | Initial open state. Toggled internally by the user. |
 
 ### Public Methods
 
-| Method | Description |
-|---|---|
+| Method                   | Description                                                                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `selectRoom(id: string)` | Scrolls the room list to the given room and briefly highlights its row. Called by `index.ts` when a beacon is clicked on the globe. |
 
 ### Events Dispatched
 
-| Event | Detail | Description |
-|---|---|---|
-| `room-select` | `{ roomId: string }` | Fired when user clicks a room row |
-| `rooms-changed` | — | Dispatched on `document` after create or delete |
+| Event           | Detail               | Description                                     |
+| --------------- | -------------------- | ----------------------------------------------- |
+| `room-select`   | `{ roomId: string }` | Fired when user clicks a room row               |
+| `rooms-changed` | —                    | Dispatched on `document` after create or delete |
 
 ### Internal Data
 
 On `connectedCallback`:
+
 1. Calls `getOrCreateSession()` to get `{ id, secret }` — stored privately on the instance
 2. Fetches `GET /api/v1/rooms` for the room list
 3. Fetches `GET /api/v1/lobby/users` for the online count
