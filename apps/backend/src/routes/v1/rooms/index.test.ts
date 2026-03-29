@@ -172,6 +172,27 @@ describe('POST /api/v1/rooms', () => {
     expect(await res.json()).toEqual({ error: 'Unauthorized' });
   });
 
+  it('returns 401 when creatorId does not match the authenticated user', async () => {
+    const kv = makeMockKV();
+    const rooms = makeMockRoomsNamespace();
+    const registry = makeMockRegistryNamespace();
+    const { secret } = await createUser(kv);
+    const { id: otherUserId } = await createUser(kv);
+
+    // Authenticated as user A but claiming to be user B
+    const res = await handle(
+      new Request('http://localhost/api/v1/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+        body: JSON.stringify({ name: 'My Room', creatorId: otherUserId }),
+      }),
+      makeEnv(kv, rooms, registry),
+    );
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'Unauthorized' });
+  });
+
   it('returns 400 when name is missing', async () => {
     const kv = makeMockKV();
     const rooms = makeMockRoomsNamespace();
@@ -202,6 +223,25 @@ describe('POST /api/v1/rooms', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
         body: JSON.stringify({ name: 'A'.repeat(65), creatorId }),
+      }),
+      makeEnv(kv, rooms, registry),
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Invalid request body' });
+  });
+
+  it('returns 400 when name is an empty string', async () => {
+    const kv = makeMockKV();
+    const rooms = makeMockRoomsNamespace();
+    const registry = makeMockRegistryNamespace();
+    const { id: creatorId, secret } = await createUser(kv);
+
+    const res = await handle(
+      new Request('http://localhost/api/v1/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+        body: JSON.stringify({ name: '', creatorId }),
       }),
       makeEnv(kv, rooms, registry),
     );
@@ -404,6 +444,26 @@ describe('DELETE /api/v1/rooms/:id', () => {
       new Request('http://localhost/api/v1/rooms/some-id', {
         method: 'DELETE',
         headers: { Authorization: 'Bearer some-secret' },
+      }),
+      makeEnv(kv, rooms, registry),
+    );
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'Unauthorized' });
+  });
+
+  it('returns 401 when X-User-Id does not match the Authorization secret', async () => {
+    const kv = makeMockKV();
+    const rooms = makeMockRoomsNamespace();
+    const registry = makeMockRegistryNamespace();
+    const { id: userAId, secret: secretA } = await createUser(kv);
+    const { id: userBId } = await createUser(kv);
+
+    // Secret belongs to user A but X-User-Id claims user B
+    const res = await handle(
+      new Request('http://localhost/api/v1/rooms/some-room-id', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${secretA}`, 'X-User-Id': userBId },
       }),
       makeEnv(kv, rooms, registry),
     );
