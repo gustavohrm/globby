@@ -12,9 +12,9 @@
   </head>
   <body>
     <app-shell>
-      <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 pt-4">
-        <h1 class="text-2xl font-bold">Lobby</h1>
-        <div id="lobby">Loading...</div>
+      <div class="relative size-full overflow-hidden">
+        <app-globe id="globe" class="absolute inset-0"></app-globe>
+        <rooms-panel id="panel" open class="absolute top-0 right-0 h-full z-10"></rooms-panel>
       </div>
     </app-shell>
   </body>
