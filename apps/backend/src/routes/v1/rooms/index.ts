@@ -35,7 +35,7 @@ register<Env>({
     }
 
     const room = await createRoom(env.ROOMS, env.ROOMS_REGISTRY, {
-      name: body.name as string,
+      name: (body.name as string).trim(),
       creatorId: body.creatorId as string,
     });
 
