@@ -166,4 +166,80 @@ describe('PATCH /api/v1/users/:id', () => {
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: 'Invalid request body' });
   });
+
+  it('updates username when field is present and valid', async () => {
+    const kv = makeMockKV();
+    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+    const { id, secret } = (await createRes.json()) as { id: string; secret: string };
+
+    const res = await handle(
+      new Request(`http://localhost/api/v1/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+        body: JSON.stringify({ username: 'CoolHandle-99' }),
+      }),
+      makeEnv(kv),
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.username).toBe('CoolHandle-99');
+  });
+
+  it('returns 409 when username is already taken', async () => {
+    const kv = makeMockKV();
+    const resA = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+    const { username: usernameA } = (await resA.json()) as { username: string };
+
+    const resB = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+    const { id: idB, secret: secretB } = (await resB.json()) as { id: string; secret: string };
+
+    const res = await handle(
+      new Request(`http://localhost/api/v1/users/${idB}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secretB}` },
+        body: JSON.stringify({ username: usernameA }),
+      }),
+      makeEnv(kv),
+    );
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'Username already taken' });
+  });
+
+  it('returns 400 for username that is too short', async () => {
+    const kv = makeMockKV();
+    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+    const { id, secret } = (await createRes.json()) as { id: string; secret: string };
+
+    const res = await handle(
+      new Request(`http://localhost/api/v1/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+        body: JSON.stringify({ username: 'ab' }),
+      }),
+      makeEnv(kv),
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Invalid request body' });
+  });
+
+  it('returns 400 for username with invalid characters', async () => {
+    const kv = makeMockKV();
+    const createRes = await handle(new Request('http://localhost/api/v1/users', { method: 'POST' }), makeEnv(kv));
+    const { id, secret } = (await createRes.json()) as { id: string; secret: string };
+
+    const res = await handle(
+      new Request(`http://localhost/api/v1/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+        body: JSON.stringify({ username: 'bad name!' }),
+      }),
+      makeEnv(kv),
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Invalid request body' });
+  });
 });
