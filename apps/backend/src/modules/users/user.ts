@@ -29,11 +29,23 @@ export async function createUser(kv: KVNamespace): Promise<User> {
   const id = crypto.randomUUID();
   const secret = crypto.randomUUID();
 
-  // Try plain username first, fall back to suffixed on collision
-  let username = generateUsername();
-  const existing = await kv.get(`username:${username}`);
-  if (existing) {
-    username = generateUsernameWithSuffix();
+  // Try the plain name first, then up to 9 suffixed attempts
+  let username: string | null = null;
+  const plain = generateUsername();
+  if (!(await kv.get(`username:${plain}`))) {
+    username = plain;
+  } else {
+    for (let i = 0; i < 9; i++) {
+      const candidate = generateUsernameWithSuffix();
+      if (!(await kv.get(`username:${candidate}`))) {
+        username = candidate;
+        break;
+      }
+    }
+  }
+
+  if (!username) {
+    throw new Error('Could not generate a unique username after 10 attempts');
   }
 
   const user: User = {
