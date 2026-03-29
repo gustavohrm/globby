@@ -1,28 +1,13 @@
 import * as THREE from "three";
-
-type Room = { id: string; code: string; name: string; creatorId: string; createdAt: string };
+import { buildContinentTexture } from "./continents";
+import {
+  animateBeacons,
+  createBeacons,
+  type BeaconEntry,
+  type Room,
+} from "./beacons";
 
 const GLOBE_RADIUS = 1.5;
-const BEACON_HEIGHT = GLOBE_RADIUS * 0.5;
-
-function hashRoomId(id: string): [number, number] {
-  let h1 = 0x811c9dc5;
-  let h2 = 0xdeadbeef;
-  for (let i = 0; i < id.length; i++) {
-    const c = id.charCodeAt(i);
-    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
-    h2 = Math.imul(h2 ^ c, 0x01000193) >>> 0;
-  }
-  const lat = ((h1 % 140) - 70) * (Math.PI / 180);
-  const lon = ((h2 % 360) - 180) * (Math.PI / 180);
-  return [lat, lon];
-}
-
-function latLonToVec3(lat: number, lon: number, r: number): THREE.Vector3 {
-  return new THREE.Vector3(r * Math.cos(lat) * Math.sin(lon), r * Math.sin(lat), r * Math.cos(lat) * Math.cos(lon));
-}
-
-type BeaconEntry = { pole: THREE.Mesh; ring: THREE.Mesh; ringMat: THREE.MeshBasicMaterial; t: number };
 
 class AppGlobe extends HTMLElement {
   private renderer!: THREE.WebGLRenderer;
@@ -33,6 +18,7 @@ class AppGlobe extends HTMLElement {
   private beaconGroup = new THREE.Group();
   private beacons = new Map<string, BeaconEntry>();
   private poleTex: THREE.CanvasTexture | null = null;
+  private continentTex: THREE.CanvasTexture | null = null;
   private rafId = 0;
   private isDragging = false;
   private pointerDownPos = { x: 0, y: 0 };
@@ -46,19 +32,24 @@ class AppGlobe extends HTMLElement {
     return ["selected-room"];
   }
 
-  attributeChangedCallback(name: string, _old: string | null, value: string | null) {
+  attributeChangedCallback(
+    name: string,
+    _old: string | null,
+    value: string | null,
+  ) {
     if (name === "selected-room") this.highlightBeacon(value ?? "");
   }
 
   connectedCallback() {
-    this.style.cssText = "display:block;position:relative;overflow:hidden;";
+    this.innerHTML = "";
+    this.style.cssText = "display:block;overflow:hidden;";
     this.initRenderer();
     this.buildScene();
     this.setupPointerEvents();
     document.addEventListener("rooms-changed", this.onRoomsChanged);
     window.addEventListener("resize", this.onResize);
     void this.fetchAndRender();
-    this.rafId = requestAnimationFrame(this.animate);
+    this.rafId = requestAnimationFrame(this.tick);
   }
 
   disconnectedCallback() {
@@ -87,9 +78,9 @@ class AppGlobe extends HTMLElement {
   };
 
   private initRenderer() {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setClearColor(0x030712);
+    this.renderer.setClearColor(0x030712, 1);
     this.onResize();
     this.renderer.domElement.style.display = "block";
     this.appendChild(this.renderer.domElement);
@@ -108,27 +99,40 @@ class AppGlobe extends HTMLElement {
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
     this.camera.position.z = 4.5;
 
+    // Lighting
     this.scene.add(new THREE.AmbientLight(0x1a1a2e, 3));
-    const dir = new THREE.DirectionalLight(0xc026d3, 2.5);
+    const dir = new THREE.DirectionalLight(0xc026d3, 2);
     dir.position.set(5, 3, 5);
     this.scene.add(dir);
 
+    // Base globe (dark ocean)
     const globeMat = new THREE.MeshPhongMaterial({
       color: 0x050d1a,
-      emissive: 0x2d0040,
-      emissiveIntensity: 0.5,
+      emissive: 0x1a0028,
+      emissiveIntensity: 0.4,
       shininess: 60,
-    });
-    this.globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64), globeMat));
-
-    const hexMat = new THREE.MeshBasicMaterial({
-      map: this.buildHexTexture(),
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.95,
+    });
+    this.globeGroup.add(
+      new THREE.Mesh(new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64), globeMat),
+    );
+
+    // Continent layer
+    this.continentTex = buildContinentTexture();
+    const continentMat = new THREE.MeshBasicMaterial({
+      map: this.continentTex,
+      transparent: true,
       depthWrite: false,
     });
-    this.globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_RADIUS * 1.002, 64, 64), hexMat));
+    this.globeGroup.add(
+      new THREE.Mesh(
+        new THREE.SphereGeometry(GLOBE_RADIUS * 1.002, 64, 64),
+        continentMat,
+      ),
+    );
 
+    // Atmosphere glow (back-side sphere)
     const atmMat = new THREE.MeshPhongMaterial({
       color: 0xc026d3,
       transparent: true,
@@ -136,13 +140,22 @@ class AppGlobe extends HTMLElement {
       side: THREE.BackSide,
       depthWrite: false,
     });
-    this.globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_RADIUS * 1.08, 64, 64), atmMat));
+    this.globeGroup.add(
+      new THREE.Mesh(
+        new THREE.SphereGeometry(GLOBE_RADIUS * 1.1, 64, 64),
+        atmMat,
+      ),
+    );
 
     this.globeGroup.add(this.beaconGroup);
     this.scene.add(this.globeGroup);
   }
 
   private disposeScene() {
+    if (this.continentTex) {
+      this.continentTex.dispose();
+      this.continentTex = null;
+    }
     this.globeGroup.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
         obj.geometry.dispose();
@@ -155,105 +168,18 @@ class AppGlobe extends HTMLElement {
     });
   }
 
-  private buildHexTexture(): THREE.CanvasTexture {
-    const size = 512;
-    const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = size;
-    const ctx = canvas.getContext("2d")!;
-    ctx.strokeStyle = "rgba(192,38,211,0.5)";
-    ctx.lineWidth = 0.8;
-    const r = 22;
-    const cw = r * Math.sqrt(3);
-    const ch = r * 2;
-    for (let row = -1; row <= size / (ch * 0.75) + 1; row++) {
-      for (let col = -1; col <= size / cw + 1; col++) {
-        const cx = col * cw + (row % 2 ? cw / 2 : 0);
-        const cy = row * ch * 0.75;
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-          const a = (Math.PI / 3) * i - Math.PI / 6;
-          if (i === 0) ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
-          else ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
-        }
-        ctx.closePath();
-        ctx.stroke();
-      }
-    }
-    return new THREE.CanvasTexture(canvas);
-  }
-
-  private buildPoleTexture(): THREE.CanvasTexture {
-    const canvas = document.createElement("canvas");
-    canvas.width = 2;
-    canvas.height = 64;
-    const ctx = canvas.getContext("2d")!;
-    const g = ctx.createLinearGradient(0, 64, 0, 0);
-    g.addColorStop(0, "rgba(192,38,211,1)");
-    g.addColorStop(0.5, "rgba(192,38,211,0.5)");
-    g.addColorStop(1, "rgba(192,38,211,0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 2, 64);
-    return new THREE.CanvasTexture(canvas);
-  }
-
   private async fetchAndRender() {
     try {
       const res = await fetch("/api/v1/rooms");
       if (!res.ok) return;
       const { rooms } = (await res.json()) as { rooms: Room[] };
-      this.buildBeacons(rooms);
+      this.poleTex = createBeacons(
+        rooms,
+        this.beaconGroup,
+        this.beacons,
+      );
     } catch {
       // ignore — globe still renders without beacons
-    }
-  }
-
-  private buildBeacons(rooms: Room[]) {
-    // Dispose previous beacon resources
-    if (this.poleTex) {
-      this.poleTex.dispose();
-      this.poleTex = null;
-    }
-    for (const { pole, ring, ringMat } of this.beacons.values()) {
-      pole.geometry.dispose();
-      (pole.material as THREE.MeshBasicMaterial).dispose();
-      ring.geometry.dispose();
-      ringMat.dispose();
-    }
-    this.beaconGroup.clear();
-    this.beacons.clear();
-    this.poleTex = this.buildPoleTexture();
-
-    for (const room of rooms) {
-      const [lat, lon] = hashRoomId(room.id);
-      const dir = latLonToVec3(lat, lon, 1);
-
-      const poleGeo = new THREE.CylinderGeometry(0.006, 0.014, BEACON_HEIGHT, 6, 1, true);
-      const poleMat = new THREE.MeshBasicMaterial({
-        map: this.poleTex,
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      });
-      const pole = new THREE.Mesh(poleGeo, poleMat);
-      pole.position.copy(dir.clone().multiplyScalar(GLOBE_RADIUS + BEACON_HEIGHT / 2));
-      pole.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-      pole.userData = { roomId: room.id, roomName: room.name };
-      this.beaconGroup.add(pole);
-
-      const ringGeo = new THREE.RingGeometry(0.025, 0.055, 32);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: 0xc026d3,
-        transparent: true,
-        opacity: 0.8,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.position.copy(dir.clone().multiplyScalar(GLOBE_RADIUS + 0.005));
-      ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
-      this.beaconGroup.add(ring);
-
-      this.beacons.set(room.id, { pole, ring, ringMat, t: Math.random() });
     }
   }
 
@@ -277,7 +203,10 @@ class AppGlobe extends HTMLElement {
       const dy = e.clientY - this.prevMouse.y;
       this.globeGroup.rotation.y += dx * 0.005;
       this.globeGroup.rotation.x += dy * 0.003;
-      this.globeGroup.rotation.x = Math.max(-1.2, Math.min(1.2, this.globeGroup.rotation.x));
+      this.globeGroup.rotation.x = Math.max(
+        -1.2,
+        Math.min(1.2, this.globeGroup.rotation.x),
+      );
       this.prevMouse = { x: e.clientX, y: e.clientY };
       this.tooltipEl.style.display = "none";
     } else {
@@ -288,7 +217,10 @@ class AppGlobe extends HTMLElement {
   private onPointerUp = (e: PointerEvent) => {
     if (!this.isDragging) return;
     this.isDragging = false;
-    const moved = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
+    const moved = Math.hypot(
+      e.clientX - this.pointerDownPos.x,
+      e.clientY - this.pointerDownPos.y,
+    );
     if (moved < 4) this.checkClick(e);
   };
 
@@ -332,20 +264,18 @@ class AppGlobe extends HTMLElement {
     const hits = this.getRay(e).intersectObjects(poles);
     if (hits.length > 0) {
       const { roomId } = hits[0].object.userData as { roomId: string };
-      this.dispatchEvent(new CustomEvent("room-select", { bubbles: true, detail: { roomId } }));
+      this.dispatchEvent(
+        new CustomEvent("room-select", { bubbles: true, detail: { roomId } }),
+      );
     }
   }
 
-  private animate = () => {
-    this.rafId = requestAnimationFrame(this.animate);
+  private tick = () => {
+    this.rafId = requestAnimationFrame(this.tick);
     if (!this.isDragging) {
       this.globeGroup.rotation.y += 0.001;
     }
-    for (const entry of this.beacons.values()) {
-      entry.t = (entry.t + 0.008) % 1;
-      entry.ring.scale.setScalar(1 + entry.t * 2);
-      entry.ringMat.opacity = (1 - entry.t) * 0.75;
-    }
+    animateBeacons(this.beacons);
     this.renderer.render(this.scene, this.camera);
   };
 }
