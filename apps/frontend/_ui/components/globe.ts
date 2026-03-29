@@ -10,8 +10,8 @@ function hashRoomId(id: string): [number, number] {
   let h2 = 0xdeadbeef;
   for (let i = 0; i < id.length; i++) {
     const c = id.charCodeAt(i);
-    h1 = (Math.imul(h1 ^ c, 0x01000193) >>> 0);
-    h2 = (Math.imul(h2 ^ c, 0x01000193) >>> 0);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ c, 0x01000193) >>> 0;
   }
   const lat = ((h1 % 140) - 70) * (Math.PI / 180);
   const lon = ((h2 % 360) - 180) * (Math.PI / 180);
@@ -19,28 +19,28 @@ function hashRoomId(id: string): [number, number] {
 }
 
 function latLonToVec3(lat: number, lon: number, r: number): THREE.Vector3 {
-  return new THREE.Vector3(
-    r * Math.cos(lat) * Math.sin(lon),
-    r * Math.sin(lat),
-    r * Math.cos(lat) * Math.cos(lon),
-  );
+  return new THREE.Vector3(r * Math.cos(lat) * Math.sin(lon), r * Math.sin(lat), r * Math.cos(lat) * Math.cos(lon));
 }
 
 type BeaconEntry = { pole: THREE.Mesh; ring: THREE.Mesh; ringMat: THREE.MeshBasicMaterial; t: number };
 
 class AppGlobe extends HTMLElement {
   private renderer!: THREE.WebGLRenderer;
+  private canvas: HTMLCanvasElement | null = null;
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
   private globeGroup = new THREE.Group();
   private beaconGroup = new THREE.Group();
   private beacons = new Map<string, BeaconEntry>();
+  private poleTex: THREE.CanvasTexture | null = null;
   private rafId = 0;
   private isDragging = false;
   private pointerDownPos = { x: 0, y: 0 };
   private prevMouse = { x: 0, y: 0 };
   private tooltipEl!: HTMLDivElement;
   private onRoomsChanged = () => void this.fetchAndRender();
+  private raycaster = new THREE.Raycaster();
+  private ndc = new THREE.Vector2();
 
   static get observedAttributes() {
     return ["selected-room"];
@@ -65,6 +65,14 @@ class AppGlobe extends HTMLElement {
     cancelAnimationFrame(this.rafId);
     document.removeEventListener("rooms-changed", this.onRoomsChanged);
     window.removeEventListener("resize", this.onResize);
+    if (this.canvas) {
+      this.canvas.removeEventListener("pointerdown", this.onPointerDown);
+      this.canvas.removeEventListener("pointermove", this.onPointerMove);
+      this.canvas.removeEventListener("pointerup", this.onPointerUp);
+      this.canvas.removeEventListener("pointerleave", this.onPointerLeave);
+      this.canvas = null;
+    }
+    this.disposeScene();
     this.renderer.dispose();
   }
 
@@ -85,6 +93,7 @@ class AppGlobe extends HTMLElement {
     this.onResize();
     this.renderer.domElement.style.display = "block";
     this.appendChild(this.renderer.domElement);
+    this.canvas = this.renderer.domElement;
 
     this.tooltipEl = document.createElement("div");
     this.tooltipEl.style.cssText =
@@ -131,6 +140,19 @@ class AppGlobe extends HTMLElement {
 
     this.globeGroup.add(this.beaconGroup);
     this.scene.add(this.globeGroup);
+  }
+
+  private disposeScene() {
+    this.globeGroup.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) {
+        obj.geometry.dispose();
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach((m) => m.dispose());
+        } else {
+          obj.material.dispose();
+        }
+      }
+    });
   }
 
   private buildHexTexture(): THREE.CanvasTexture {
@@ -186,17 +208,28 @@ class AppGlobe extends HTMLElement {
   }
 
   private buildBeacons(rooms: Room[]) {
+    // Dispose previous beacon resources
+    if (this.poleTex) {
+      this.poleTex.dispose();
+      this.poleTex = null;
+    }
+    for (const { pole, ring, ringMat } of this.beacons.values()) {
+      pole.geometry.dispose();
+      (pole.material as THREE.MeshBasicMaterial).dispose();
+      ring.geometry.dispose();
+      ringMat.dispose();
+    }
     this.beaconGroup.clear();
     this.beacons.clear();
-    const poleTex = this.buildPoleTexture();
+    this.poleTex = this.buildPoleTexture();
 
     for (const room of rooms) {
       const [lat, lon] = hashRoomId(room.id);
-      const dir = latLonToVec3(lat, lon, 1).normalize();
+      const dir = latLonToVec3(lat, lon, 1);
 
       const poleGeo = new THREE.CylinderGeometry(0.006, 0.014, BEACON_HEIGHT, 6, 1, true);
       const poleMat = new THREE.MeshBasicMaterial({
-        map: poleTex,
+        map: this.poleTex,
         transparent: true,
         side: THREE.DoubleSide,
         depthWrite: false,
@@ -225,55 +258,59 @@ class AppGlobe extends HTMLElement {
   }
 
   private highlightBeacon(roomId: string) {
+    if (!this.scene) return;
     for (const [id, { pole }] of this.beacons) {
       pole.scale.setScalar(id === roomId ? 1.6 : 1);
     }
   }
 
+  private onPointerDown = (e: PointerEvent) => {
+    this.isDragging = true;
+    this.pointerDownPos = { x: e.clientX, y: e.clientY };
+    this.prevMouse = { x: e.clientX, y: e.clientY };
+    (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
+  };
+
+  private onPointerMove = (e: PointerEvent) => {
+    if (this.isDragging) {
+      const dx = e.clientX - this.prevMouse.x;
+      const dy = e.clientY - this.prevMouse.y;
+      this.globeGroup.rotation.y += dx * 0.005;
+      this.globeGroup.rotation.x += dy * 0.003;
+      this.globeGroup.rotation.x = Math.max(-1.2, Math.min(1.2, this.globeGroup.rotation.x));
+      this.prevMouse = { x: e.clientX, y: e.clientY };
+      this.tooltipEl.style.display = "none";
+    } else {
+      this.checkHover(e);
+    }
+  };
+
+  private onPointerUp = (e: PointerEvent) => {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    const moved = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
+    if (moved < 4) this.checkClick(e);
+  };
+
+  private onPointerLeave = () => {
+    this.isDragging = false;
+    this.tooltipEl.style.display = "none";
+  };
+
   private setupPointerEvents() {
     const canvas = this.renderer.domElement;
-
-    canvas.addEventListener("pointerdown", (e) => {
-      this.isDragging = true;
-      this.pointerDownPos = { x: e.clientX, y: e.clientY };
-      this.prevMouse = { x: e.clientX, y: e.clientY };
-      canvas.setPointerCapture(e.pointerId);
-    });
-
-    canvas.addEventListener("pointermove", (e) => {
-      if (this.isDragging) {
-        const dx = e.clientX - this.prevMouse.x;
-        const dy = e.clientY - this.prevMouse.y;
-        this.globeGroup.rotation.y += dx * 0.005;
-        this.globeGroup.rotation.x += dy * 0.003;
-        this.globeGroup.rotation.x = Math.max(-1.2, Math.min(1.2, this.globeGroup.rotation.x));
-        this.prevMouse = { x: e.clientX, y: e.clientY };
-        this.tooltipEl.style.display = "none";
-      } else {
-        this.checkHover(e);
-      }
-    });
-
-    canvas.addEventListener("pointerup", (e) => {
-      if (!this.isDragging) return;
-      this.isDragging = false;
-      const moved = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
-      if (moved < 4) this.checkClick(e);
-    });
-
-    canvas.addEventListener("pointerleave", () => {
-      this.isDragging = false;
-      this.tooltipEl.style.display = "none";
-    });
+    canvas.addEventListener("pointerdown", this.onPointerDown);
+    canvas.addEventListener("pointermove", this.onPointerMove);
+    canvas.addEventListener("pointerup", this.onPointerUp);
+    canvas.addEventListener("pointerleave", this.onPointerLeave);
   }
 
   private getRay(e: PointerEvent): THREE.Raycaster {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    const ray = new THREE.Raycaster();
-    ray.setFromCamera(new THREE.Vector2(x, y), this.camera);
-    return ray;
+    this.raycaster.setFromCamera(this.ndc.set(x, y), this.camera);
+    return this.raycaster;
   }
 
   private checkHover(e: PointerEvent) {
