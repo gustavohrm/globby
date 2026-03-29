@@ -142,6 +142,57 @@ describe('createRoom', () => {
     const codes = created.map((r) => r.code);
     expect(new Set(codes).size).toBe(10);
   });
+
+  it('retries code generation when there is a collision', async () => {
+    // Registry that rejects the first 3 candidates then accepts the 4th
+    let callCount = 0;
+    const rooms = makeMockRoomsNamespace();
+    const registryDO = {
+      async fetch(input: RequestInfo, init?: RequestInit): Promise<Response> {
+        const req = typeof input === 'string' ? new Request(input, init) : input;
+        const url = new URL(req.url);
+        const parts = url.pathname.split('/').filter(Boolean);
+        if (req.method === 'GET' && parts[0] === 'codes') {
+          callCount++;
+          // First 3 code checks → 200 (conflict), 4th onward → 404 (available)
+          return new Response(null, { status: callCount <= 3 ? 200 : 404 });
+        }
+        // Allow POST /rooms and PUT / through normally
+        if (req.method === 'POST' && parts[0] === 'rooms') return new Response(null, { status: 204 });
+        if (req.method === 'GET' && parts[0] === 'rooms' && !parts[1]) return Response.json({ rooms: [] });
+        return new Response(null, { status: 404 });
+      },
+    };
+    const registry = {
+      idFromName: (_name: string) => 'rooms-registry' as unknown as DurableObjectId,
+      get: (_id: DurableObjectId) => registryDO as unknown as DurableObjectStub,
+    } as unknown as DurableObjectNamespace;
+
+    const room = await createRoom(rooms, registry, { name: 'Retry Room', creatorId: 'user-1' });
+    expect(room.code).toMatch(/^[A-Z0-9]{6}$/);
+    expect(callCount).toBeGreaterThanOrEqual(4);
+  });
+
+  it('throws when all 10 code generation attempts result in collisions', async () => {
+    const rooms = makeMockRoomsNamespace();
+    const alwaysConflictDO = {
+      async fetch(input: RequestInfo, init?: RequestInit): Promise<Response> {
+        const req = typeof input === 'string' ? new Request(input, init) : input;
+        const url = new URL(req.url);
+        const parts = url.pathname.split('/').filter(Boolean);
+        if (req.method === 'GET' && parts[0] === 'codes') return new Response(null, { status: 200 });
+        return new Response(null, { status: 404 });
+      },
+    };
+    const registry = {
+      idFromName: (_name: string) => 'rooms-registry' as unknown as DurableObjectId,
+      get: (_id: DurableObjectId) => alwaysConflictDO as unknown as DurableObjectStub,
+    } as unknown as DurableObjectNamespace;
+
+    await expect(createRoom(rooms, registry, { name: 'Doomed Room', creatorId: 'user-1' })).rejects.toThrow(
+      'Could not generate unique room code after 10 attempts',
+    );
+  });
 });
 
 describe('getRoomById', () => {
