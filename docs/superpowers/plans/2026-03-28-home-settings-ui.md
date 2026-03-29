@@ -12,19 +12,20 @@
 
 ## File Map
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Modify | `apps/frontend/index.html` | Add content container + lobby placeholder + script tag |
-| Create | `apps/frontend/index.ts` | Bootstrap session, fetch lobby, render compact list |
+| Action | Path                                | Responsibility                                             |
+| ------ | ----------------------------------- | ---------------------------------------------------------- |
+| Modify | `apps/frontend/index.html`          | Add content container + lobby placeholder + script tag     |
+| Create | `apps/frontend/index.ts`            | Bootstrap session, fetch lobby, render compact list        |
 | Modify | `apps/frontend/settings/index.html` | Add IDs to form elements + display name input + script tag |
-| Create | `apps/frontend/settings/index.ts` | Bootstrap session, load profile, handle save/cancel |
-| Modify | `.gitignore` | Add `.superpowers/` (brainstorm artefacts) |
+| Create | `apps/frontend/settings/index.ts`   | Bootstrap session, load profile, handle save/cancel        |
+| Modify | `.gitignore`                        | Add `.superpowers/` (brainstorm artefacts)                 |
 
 ---
 
 ## Task 1: Add `.superpowers/` to `.gitignore`
 
 **Files:**
+
 - Modify: `.gitignore`
 
 - [ ] **Step 1: Add entry**
@@ -48,6 +49,7 @@ git commit -m "chore: ignore .superpowers brainstorm artefacts"
 ## Task 2: Home page — session bootstrap + lobby list
 
 **Files:**
+
 - Modify: `apps/frontend/index.html`
 - Create: `apps/frontend/index.ts`
 
@@ -56,15 +58,15 @@ git commit -m "chore: ignore .superpowers brainstorm artefacts"
 Replace the current body content:
 
 ```html
-  <body>
-    <app-shell>
-      <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 pt-4">
-        <h1 class="text-2xl font-bold">Lobby</h1>
-        <div id="lobby">Loading...</div>
-      </div>
-    </app-shell>
-    <script type="module" src="./index.ts"></script>
-  </body>
+<body>
+  <app-shell>
+    <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 pt-4">
+      <h1 class="text-2xl font-bold">Lobby</h1>
+      <div id="lobby">Loading...</div>
+    </div>
+  </app-shell>
+  <script type="module" src="./index.ts"></script>
+</body>
 ```
 
 - [ ] **Step 2: Create `apps/frontend/index.ts`**
@@ -155,6 +157,7 @@ git commit -m "feat: wire home page to lobby API with session bootstrap"
 ## Task 3: Settings page — load and save profile
 
 **Files:**
+
 - Modify: `apps/frontend/settings/index.html`
 - Create: `apps/frontend/settings/index.ts`
 
@@ -163,25 +166,25 @@ git commit -m "feat: wire home page to lobby API with session bootstrap"
 Replace the body content with:
 
 ```html
-  <body>
-    <app-shell>
-      <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 pt-4">
-        <h1 class="text-2xl font-bold">Settings</h1>
+<body>
+  <app-shell>
+    <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 pt-4">
+      <h1 class="text-2xl font-bold">Settings</h1>
 
-        <app-input id="username-input" label="Username" placeholder="Loading..."></app-input>
-        <app-input id="display-name-input" label="Display name" placeholder="Optional display name"></app-input>
-        <label class="flex items-center justify-between gap-2">
-          Make profile public
-          <app-toggle id="public-toggle"></app-toggle>
-        </label>
-        <div class="flex items-center justify-end gap-4">
-          <button id="cancel-btn" class="secondary-btn">Cancel</button>
-          <button id="save-btn" class="primary-btn">Save</button>
-        </div>
+      <app-input id="username-input" label="Username" placeholder="Loading..."></app-input>
+      <app-input id="display-name-input" label="Display name" placeholder="Optional display name"></app-input>
+      <label class="flex items-center justify-between gap-2">
+        Make profile public
+        <app-toggle id="public-toggle"></app-toggle>
+      </label>
+      <div class="flex items-center justify-end gap-4">
+        <button id="cancel-btn" class="secondary-btn">Cancel</button>
+        <button id="save-btn" class="primary-btn">Save</button>
       </div>
-    </app-shell>
-    <script type="module" src="./index.ts"></script>
-  </body>
+    </div>
+  </app-shell>
+  <script type="module" src="./index.ts"></script>
+</body>
 ```
 
 - [ ] **Step 2: Create `apps/frontend/settings/index.ts`**
@@ -238,10 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Username is set once and made readonly — never updated again so re-render won't occur
   setInputValue('username-input', original.username);
-  document
-    .getElementById('username-input')
-    ?.querySelector('input')
-    ?.setAttribute('readonly', '');
+  document.getElementById('username-input')?.querySelector('input')?.setAttribute('readonly', '');
 
   function populateEditable(profile: UserProfile) {
     setInputValue('display-name-input', profile.displayName ?? '');

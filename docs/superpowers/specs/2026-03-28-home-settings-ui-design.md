@@ -29,6 +29,7 @@ Both pages read and write this key. If it's missing on page load, the page auto-
 ## Home Page
 
 **Files changed:**
+
 - `apps/frontend/index.html` — add `<script type="module" src="./index.ts">`
 - `apps/frontend/index.ts` — new file
 
@@ -39,6 +40,7 @@ Both pages read and write this key. If it's missing on page load, the page auto-
 3. Render into a `<div id="lobby">` inserted into the page's `<main>` (inside `<app-shell>`).
 
 **Render states:**
+
 - **Loading** — text "Loading..."
 - **Empty** — text "No one in the lobby yet."
 - **List** — `<ul>` of compact rows. Each row: avatar circle (first 2 chars of username, uppercased) + username + displayName (if set, shown dimmed alongside).
@@ -52,10 +54,12 @@ Both pages read and write this key. If it's missing on page load, the page auto-
 ## Settings Page
 
 **Files changed:**
+
 - `apps/frontend/settings/index.html` — add `id` attributes to form elements + `<script type="module" src="./index.ts">`
 - `apps/frontend/settings/index.ts` — new file
 
 **Form elements (IDs):**
+
 - `#username-input` — `app-input`, readonly
 - `#display-name-input` — `app-input`, editable
 - `#public-toggle` — `app-toggle` (already has `id="public-toggle"`)

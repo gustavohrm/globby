@@ -98,11 +98,11 @@ Components re-render on observed attribute changes and dispatch events upward.
 
 ## KV Schema
 
-| Key | Value | Description |
-|-----|-------|-------------|
-| `user:{uuid}` | `User` JSON | Full user record including secret |
-| `username:{username}` | user ID | Username uniqueness index |
-| `lobby:users` | `string[]` JSON | Array of public user IDs |
+| Key                   | Value           | Description                       |
+| --------------------- | --------------- | --------------------------------- |
+| `user:{uuid}`         | `User` JSON     | Full user record including secret |
+| `username:{username}` | user ID         | Username uniqueness index         |
+| `lobby:users`         | `string[]` JSON | Array of public user IDs          |
 
 ## Deployment
 
