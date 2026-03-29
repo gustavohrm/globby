@@ -1,33 +1,11 @@
-const SESSION_KEY = 'globby_session';
-
-interface Session {
-  id: string;
-  secret: string;
-}
+import { getOrCreateSession, type Session } from '../_core/services/session';
+import { showAlert } from '../_ui/scripts/alert';
 
 interface UserProfile {
   id: string;
   username: string;
   displayName: string | null;
   isPublic: boolean;
-}
-
-async function getOrCreateSession(): Promise<Session> {
-  const raw = localStorage.getItem(SESSION_KEY);
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw) as Session;
-      if (parsed.id && parsed.secret) return parsed;
-    } catch {
-      // corrupted storage — fall through to create new session
-    }
-  }
-
-  const res = await fetch('/api/v1/users', { method: 'POST' });
-  const data = (await res.json()) as { id: string; username: string; secret: string };
-  const session: Session = { id: data.id, secret: data.secret };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  return session;
 }
 
 function getInputValue(id: string): string {
@@ -53,9 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     session = await getOrCreateSession();
   } catch {
-    document
-      .querySelector('h1')
-      ?.insertAdjacentHTML('afterend', '<p class="text-error">Could not initialise session. Please reload.</p>');
+    showAlert({ type: 'error', message: 'Could not initialise session. Please reload.', autoDismiss: false, isDismissable: true });
     return;
   }
 
@@ -65,9 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!profileRes.ok) throw new Error(`Failed to load profile: ${profileRes.status}`);
     original = (await profileRes.json()) as UserProfile;
   } catch {
-    document
-      .querySelector('h1')
-      ?.insertAdjacentHTML('afterend', '<p class="text-error">Could not load profile. Please reload.</p>');
+    showAlert({ type: 'error', message: 'Could not load profile. Please reload.', autoDismiss: false, isDismissable: true });
     return;
   }
 
@@ -85,7 +59,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const saveBtn = document.getElementById('save-btn');
   saveBtn?.addEventListener('click', async () => {
-    document.getElementById('save-error')?.remove();
     saveBtn.classList.add('loading');
 
     const username = getInputValue('username-input');
@@ -110,14 +83,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (res.ok) {
         original = (await res.json()) as UserProfile;
         populateEditable(original);
+        showAlert({ type: 'success', message: 'Settings saved.' });
       } else if (res.status === 409) {
-        document
-          .querySelector('h1')
-          ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Username already taken.</p>');
+        showAlert({ type: 'error', message: 'Username already taken.' });
       } else {
-        document
-          .querySelector('h1')
-          ?.insertAdjacentHTML('afterend', '<p id="save-error" class="text-error">Save failed. Please try again.</p>');
+        showAlert({ type: 'error', message: 'Save failed. Please try again.' });
       }
     } finally {
       saveBtn.classList.remove('loading');
