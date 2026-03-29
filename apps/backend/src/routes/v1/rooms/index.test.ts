@@ -135,6 +135,26 @@ describe('POST /api/v1/rooms', () => {
     expect(typeof body.createdAt).toBe('string');
   });
 
+  it('trims whitespace from the room name before storing', async () => {
+    const kv = makeMockKV();
+    const rooms = makeMockRoomsNamespace();
+    const registry = makeMockRegistryNamespace();
+    const { id: creatorId, secret } = await createUser(kv);
+
+    const res = await handle(
+      new Request('http://localhost/api/v1/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+        body: JSON.stringify({ name: '  My Room  ', creatorId }),
+      }),
+      makeEnv(kv, rooms, registry),
+    );
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Room;
+    expect(body.name).toBe('My Room');
+  });
+
   it('returns 401 with no Authorization header', async () => {
     const kv = makeMockKV();
     const rooms = makeMockRoomsNamespace();

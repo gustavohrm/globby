@@ -70,6 +70,10 @@ export class RoomDO {
 //   DELETE /rooms/:id     → 204
 // ---------------------------------------------------------------------------
 
+// NOTE: All rooms are stored as a single JSON array under the key 'rooms'.
+// Every operation (list, create, delete) reads and rewrites the full array.
+// This is simple and correct for small room counts. If the registry grows large,
+// migrate to per-room storage entries (state.storage.get(id) / put(id, room)).
 export class RoomsRegistry {
   constructor(
     private state: DurableObjectState,
