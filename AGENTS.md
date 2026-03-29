@@ -30,7 +30,7 @@ npm run lint:fix          # Auto-fix formatting
 ## Structure
 
 ```
-.docs/                           # Centralized documentation
+.docs/                           # Centralized documentation (note: dot-prefixed, not docs/)
   plans/                         # Implementation & action plans
   specs/                         # Technical & implementation specifications
 apps/
