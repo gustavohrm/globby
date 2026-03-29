@@ -27,8 +27,9 @@ describe("getOrCreateSession", () => {
 
   it("POSTs to /api/v1/users and persists the result when storage is empty", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
       json: async () => ({ id: "new-id", username: "cool-user", secret: "new-secret" }),
-    } as Response);
+    } as unknown as Response);
 
     const session = await getOrCreateSession();
 
@@ -42,8 +43,9 @@ describe("getOrCreateSession", () => {
   it("POSTs to /api/v1/users when stored session is missing id", async () => {
     localStorage.setItem("globby_session", JSON.stringify({ id: "", secret: "orphan" }));
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
       json: async () => ({ id: "fresh-id", username: "user", secret: "fresh-secret" }),
-    } as Response);
+    } as unknown as Response);
 
     const session = await getOrCreateSession();
 
@@ -58,5 +60,15 @@ describe("getOrCreateSession", () => {
     vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Network error"));
 
     await expect(getOrCreateSession()).rejects.toThrow("Network error");
+  });
+
+  it("throws when the server returns a non-ok response", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "Internal Server Error" }),
+    } as unknown as Response);
+
+    await expect(getOrCreateSession()).rejects.toThrow("Failed to create user: 500");
   });
 });

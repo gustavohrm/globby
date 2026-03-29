@@ -40,7 +40,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     await getOrCreateSession();
   } catch {
-    showAlert({ type: 'error', message: 'Could not initialise session. Please reload.' });
+    showAlert({
+      type: 'error',
+      message: 'Could not initialise session. Please reload.',
+      autoDismiss: false,
+      isDismissable: true,
+    });
+    return;
   }
 
   const lobbyEl = document.getElementById('lobby');
@@ -55,5 +61,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     lobbyEl.textContent = 'Failed to load lobby.';
   }
 });
-
-export {};
