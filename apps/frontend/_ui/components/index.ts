@@ -1,4 +1,3 @@
-import "./globe";
 import "./input";
 import "./nav";
 import "./rooms-panel";

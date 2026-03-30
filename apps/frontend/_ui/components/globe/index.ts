@@ -1,4 +1,26 @@
-import * as THREE from "three";
+import {
+  ACESFilmicToneMapping,
+  AdditiveBlending,
+  AmbientLight,
+  BackSide,
+  CanvasTexture,
+  Color,
+  Group,
+  HemisphereLight,
+  Mesh,
+  MeshBasicMaterial,
+  MeshLambertMaterial,
+  Object3D,
+  PerspectiveCamera,
+  PointLight,
+  Raycaster,
+  Scene,
+  SphereGeometry,
+  SRGBColorSpace,
+  Vector2,
+  Vector3,
+  WebGLRenderer,
+} from "three";
 import { buildContinentTexture } from "./continents";
 import { animateBeacons, createBeacons, type Room, type BeaconEntry } from "./beacons";
 
@@ -21,13 +43,13 @@ type GlobePalette = {
   glowCss: string;
   beaconCss: string;
   textCss: string;
-  core: THREE.Color;
-  atmosphere: THREE.Color;
-  glow: THREE.Color;
-  beacon: THREE.Color;
+  core: Color;
+  atmosphere: Color;
+  glow: Color;
+  beacon: Color;
 };
 
-function toRgba(color: THREE.Color, alpha: number): string {
+function toRgba(color: Color, alpha: number): string {
   const red = Math.round(color.r * 255);
   const green = Math.round(color.g * 255);
   const blue = Math.round(color.b * 255);
@@ -35,23 +57,23 @@ function toRgba(color: THREE.Color, alpha: number): string {
 }
 
 class AppGlobe extends HTMLElement {
-  private renderer!: THREE.WebGLRenderer;
+  private renderer!: WebGLRenderer;
   private canvas: HTMLCanvasElement | null = null;
-  private scene!: THREE.Scene;
-  private camera!: THREE.PerspectiveCamera;
-  private globeGroup = new THREE.Group();
-  private beaconGroup = new THREE.Group();
+  private scene!: Scene;
+  private camera!: PerspectiveCamera;
+  private globeGroup = new Group();
+  private beaconGroup = new Group();
   private beacons = new Map<string, BeaconEntry>();
-  private poleTex: THREE.CanvasTexture | null = null;
-  private continentTex: THREE.CanvasTexture | null = null;
+  private poleTex: CanvasTexture | null = null;
+  private continentTex: CanvasTexture | null = null;
   private rafId = 0;
   private isDragging = false;
   private pointerDownPos = { x: 0, y: 0 };
   private prevMouse = { x: 0, y: 0 };
   private tooltipEl!: HTMLDivElement;
   private onRoomsChanged = () => void this.fetchAndRender();
-  private raycaster = new THREE.Raycaster();
-  private ndc = new THREE.Vector2();
+  private raycaster = new Raycaster();
+  private ndc = new Vector2();
   private palette!: GlobePalette;
   private selectedRoomId = "";
   private hoveredRoomId = "";
@@ -114,10 +136,10 @@ class AppGlobe extends HTMLElement {
   };
 
   private initRenderer() {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer = new WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.outputColorSpace = SRGBColorSpace;
+    this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.setClearColor(this.palette.core, 0);
     this.onResize();
@@ -134,50 +156,50 @@ class AppGlobe extends HTMLElement {
   }
 
   private buildScene() {
-    this.scene = new THREE.Scene();
+    this.scene = new Scene();
     const w = this.offsetWidth || window.innerWidth;
     const h = this.offsetHeight || window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+    this.camera = new PerspectiveCamera(45, w / h, 0.1, 100);
     this.camera.position.z = 4.5;
 
-    this.scene.add(new THREE.AmbientLight(this.palette.atmosphere.clone(), 1.35));
-    const skyLight = new THREE.HemisphereLight(
+    this.scene.add(new AmbientLight(this.palette.atmosphere.clone(), 1.35));
+    const skyLight = new HemisphereLight(
       this.palette.beacon.clone(),
       this.palette.core.clone(),
       1.15,
     );
     this.scene.add(skyLight);
-    const keyLight = new THREE.PointLight(this.palette.glow, 7, 12, 2);
+    const keyLight = new PointLight(this.palette.glow, 7, 12, 2);
     keyLight.position.set(3.2, 2.1, 4.6);
     this.scene.add(keyLight);
-    const fillLight = new THREE.PointLight(this.palette.atmosphere, 4.5, 11, 2);
+    const fillLight = new PointLight(this.palette.atmosphere, 4.5, 11, 2);
     fillLight.position.set(-2.8, -0.9, 3.8);
     this.scene.add(fillLight);
 
-    const innerGlowMat = new THREE.MeshBasicMaterial({
+    const innerGlowMat = new MeshBasicMaterial({
       color: this.palette.glow.clone().lerp(this.palette.beacon, 0.14),
       transparent: true,
       opacity: 0.16,
-      side: THREE.BackSide,
+      side: BackSide,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
     });
-    const innerGlow = new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_RADIUS * 0.965, 64, 64),
+    const innerGlow = new Mesh(
+      new SphereGeometry(GLOBE_RADIUS * 0.965, 64, 64),
       innerGlowMat,
     );
     innerGlow.renderOrder = 0;
     this.globeGroup.add(innerGlow);
 
-    const globeMat = new THREE.MeshLambertMaterial({
+    const globeMat = new MeshLambertMaterial({
       color: this.palette.core.clone().lerp(this.palette.atmosphere, 0.08),
       emissive: this.palette.glow.clone().lerp(this.palette.atmosphere, 0.3),
       emissiveIntensity: 0.08,
       transparent: true,
       opacity: 0.7,
     });
-    const globe = new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64),
+    const globe = new Mesh(
+      new SphereGeometry(GLOBE_RADIUS, 64, 64),
       globeMat,
     );
     globe.renderOrder = 1;
@@ -188,14 +210,14 @@ class AppGlobe extends HTMLElement {
       outlineColor: this.palette.landOutlineCss,
       glowColor: this.palette.atmosphereCss,
     });
-    const continentMat = new THREE.MeshBasicMaterial({
+    const continentMat = new MeshBasicMaterial({
       map: this.continentTex,
       transparent: true,
       opacity: 0.76,
       depthWrite: false,
     });
-    const continents = new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_RADIUS * 1.002, 64, 64),
+    const continents = new Mesh(
+      new SphereGeometry(GLOBE_RADIUS * 1.002, 64, 64),
       continentMat,
     );
     continents.renderOrder = 2;
@@ -215,7 +237,7 @@ class AppGlobe extends HTMLElement {
       this.poleTex = null;
     }
     this.globeGroup.traverse((obj) => {
-      if (obj instanceof THREE.Mesh) {
+      if (obj instanceof Mesh) {
         obj.geometry.dispose();
         if (Array.isArray(obj.material)) {
           obj.material.forEach((m) => m.dispose());
@@ -258,10 +280,10 @@ class AppGlobe extends HTMLElement {
       glowCss,
       beaconCss,
       textCss,
-      core: new THREE.Color(coreCss),
-      atmosphere: new THREE.Color(atmosphereCss),
-      glow: new THREE.Color(glowCss),
-      beacon: new THREE.Color(beaconCss),
+      core: new Color(coreCss),
+      atmosphere: new Color(atmosphereCss),
+      glow: new Color(glowCss),
+      beacon: new Color(beaconCss),
     };
   }
 
@@ -362,7 +384,7 @@ class AppGlobe extends HTMLElement {
     canvas.addEventListener("pointerleave", this.onPointerLeave);
   }
 
-  private getRay(e: PointerEvent): THREE.Raycaster {
+  private getRay(e: PointerEvent): Raycaster {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -370,9 +392,9 @@ class AppGlobe extends HTMLElement {
     return this.raycaster;
   }
 
-  private isFrontFacing(object: THREE.Object3D): boolean {
-    const globeCenter = this.globeGroup.getWorldPosition(new THREE.Vector3());
-    const point = object.getWorldPosition(new THREE.Vector3());
+  private isFrontFacing(object: Object3D): boolean {
+    const globeCenter = this.globeGroup.getWorldPosition(new Vector3());
+    const point = object.getWorldPosition(new Vector3());
     const surfaceNormal = point.clone().sub(globeCenter).normalize();
     const toCamera = this.camera.position.clone().sub(point).normalize();
     return surfaceNormal.dot(toCamera) > 0;

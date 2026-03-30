@@ -1,4 +1,17 @@
-import * as THREE from "three";
+import {
+  CanvasTexture,
+  Color,
+  CylinderGeometry,
+  DoubleSide,
+  Group,
+  Material,
+  Mesh,
+  MeshBasicMaterial,
+  RingGeometry,
+  SphereGeometry,
+  Vector3,
+  type ColorRepresentation,
+} from "three";
 
 const GLOBE_RADIUS = 1.5;
 const BEACON_HEIGHT = GLOBE_RADIUS * 0.35;
@@ -13,10 +26,10 @@ export type Room = {
 };
 
 export type BeaconEntry = {
-  pole: THREE.Mesh;
-  ring: THREE.Mesh;
-  hitArea: THREE.Mesh;
-  ringMat: THREE.MeshBasicMaterial;
+  pole: Mesh;
+  ring: Mesh;
+  hitArea: Mesh;
+  ringMat: MeshBasicMaterial;
   isHovered: boolean;
   isSelected: boolean;
   t: number;
@@ -39,15 +52,15 @@ export function latLonToVec3(
   lat: number,
   lon: number,
   r: number,
-): THREE.Vector3 {
-  return new THREE.Vector3(
+): Vector3 {
+  return new Vector3(
     r * Math.cos(lat) * Math.sin(lon),
     r * Math.sin(lat),
     r * Math.cos(lat) * Math.cos(lon),
   );
 }
 
-function toRgba(color: THREE.Color, alpha: number): string {
+function toRgba(color: Color, alpha: number): string {
   const red = Math.round(color.r * 255);
   const green = Math.round(color.g * 255);
   const blue = Math.round(color.b * 255);
@@ -55,9 +68,9 @@ function toRgba(color: THREE.Color, alpha: number): string {
 }
 
 function buildPoleTexture(
-  primaryColor: THREE.ColorRepresentation,
-): THREE.CanvasTexture {
-  const color = new THREE.Color(primaryColor);
+  primaryColor: ColorRepresentation,
+): CanvasTexture {
+  const color = new Color(primaryColor);
   const canvas = document.createElement("canvas");
   canvas.width = 2;
   canvas.height = 64;
@@ -69,23 +82,23 @@ function buildPoleTexture(
   g.addColorStop(1, toRgba(color, 0));
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 2, 64);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 export function createBeacons(
   rooms: Room[],
-  beaconGroup: THREE.Group,
+  beaconGroup: Group,
   beacons: Map<string, BeaconEntry>,
-  primaryColor: THREE.ColorRepresentation = DEFAULT_PRIMARY_COLOR,
+  primaryColor: ColorRepresentation = DEFAULT_PRIMARY_COLOR,
 ) {
   // Dispose previous
   for (const { pole, ring, hitArea, ringMat } of beacons.values()) {
     pole.geometry.dispose();
-    (pole.material as THREE.MeshBasicMaterial).dispose();
+    (pole.material as MeshBasicMaterial).dispose();
     ring.geometry.dispose();
     ringMat.dispose();
     hitArea.geometry.dispose();
-    (hitArea.material as THREE.Material).dispose();
+    (hitArea.material as Material).dispose();
   }
   beaconGroup.clear();
   beacons.clear();
@@ -97,7 +110,7 @@ export function createBeacons(
     const dir = latLonToVec3(lat, lon, 1);
 
     // Thinner pole
-    const poleGeo = new THREE.CylinderGeometry(
+    const poleGeo = new CylinderGeometry(
       0.003,
       0.006,
       BEACON_HEIGHT,
@@ -105,37 +118,37 @@ export function createBeacons(
       1,
       true,
     );
-    const poleMat = new THREE.MeshBasicMaterial({
+    const poleMat = new MeshBasicMaterial({
       map: poleTex,
       transparent: true,
-      side: THREE.DoubleSide,
+      side: DoubleSide,
       depthWrite: false,
     });
-    const pole = new THREE.Mesh(poleGeo, poleMat);
+    const pole = new Mesh(poleGeo, poleMat);
     pole.position.copy(
       dir.clone().multiplyScalar(GLOBE_RADIUS + BEACON_HEIGHT / 2),
     );
-    pole.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    pole.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), dir);
     pole.userData = { roomId: room.id, roomName: room.name };
     beaconGroup.add(pole);
 
     // Thin ring (narrow difference between inner and outer radius)
-    const ringGeo = new THREE.RingGeometry(0.035, 0.04, 32);
-    const ringMat = new THREE.MeshBasicMaterial({
+    const ringGeo = new RingGeometry(0.035, 0.04, 32);
+    const ringMat = new MeshBasicMaterial({
       color: primaryColor,
       transparent: true,
       opacity: 0.88,
-      side: THREE.DoubleSide,
+      side: DoubleSide,
       depthWrite: false,
     });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
+    const ring = new Mesh(ringGeo, ringMat);
     ring.position.copy(dir.clone().multiplyScalar(GLOBE_RADIUS + 0.005));
-    ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+    ring.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), dir);
     beaconGroup.add(ring);
 
-    const hitArea = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 12, 12),
-      new THREE.MeshBasicMaterial({
+    const hitArea = new Mesh(
+      new SphereGeometry(0.12, 12, 12),
+      new MeshBasicMaterial({
         transparent: true,
         opacity: 0,
         depthWrite: false,
@@ -183,15 +196,15 @@ export function animateBeacons(beacons: Map<string, BeaconEntry>) {
 
 export function disposeBeacons(
   beacons: Map<string, BeaconEntry>,
-  poleTex: THREE.CanvasTexture | null,
+  poleTex: CanvasTexture | null,
 ) {
   if (poleTex) poleTex.dispose();
   for (const { pole, ring, hitArea, ringMat } of beacons.values()) {
     pole.geometry.dispose();
-    (pole.material as THREE.MeshBasicMaterial).dispose();
+    (pole.material as MeshBasicMaterial).dispose();
     ring.geometry.dispose();
     ringMat.dispose();
     hitArea.geometry.dispose();
-    (hitArea.material as THREE.Material).dispose();
+    (hitArea.material as Material).dispose();
   }
 }

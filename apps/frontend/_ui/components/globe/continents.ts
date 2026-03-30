@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import { CanvasTexture } from "three";
 
 type Polygon = [number, number][];
 
@@ -684,7 +684,7 @@ export interface ContinentTextureOptions {
 
 export function buildContinentTexture(
   options: ContinentTextureOptions,
-): THREE.CanvasTexture {
+): CanvasTexture {
   const w = 2048;
   const h = 1024;
   const canvas = createCanvas(w, h);
@@ -729,7 +729,7 @@ export function buildContinentTexture(
   ctx.drawImage(outlineCanvas, 0, 0);
   ctx.globalAlpha = 1;
 
-  const tex = new THREE.CanvasTexture(canvas);
+  const tex = new CanvasTexture(canvas);
   tex.needsUpdate = true;
   return tex;
 }
