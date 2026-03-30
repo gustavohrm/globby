@@ -103,6 +103,10 @@ Beacon behavior remains functionally unchanged:
 
 If the new zoom defaults or brighter globe treatment reduce beacon readability, only minimal tuning is allowed. Acceptable changes include small scale, opacity, or brightness adjustments that preserve the current interaction model.
 
+Front-facing beacon visibility should be explicitly prioritized above the globe surface layers. The pole and ring should render above the globe body and continent overlay when they are on the visible hemisphere, so the globe no longer tints or masks those beacon segments.
+
+This should be implemented through render ordering rather than by disabling depth testing. Back-side beacon geometry must still disappear correctly behind the globe.
+
 ---
 
 ## Data Flow
@@ -128,6 +132,7 @@ Existing resilience should remain intact:
 - room fetch failures still leave the globe visible without beacons
 - pointer interactions should fail safely if pinch or wheel input is unavailable or interrupted
 - removing the atmosphere shell must not leave behind dead code paths or render-order assumptions
+- beacon layering changes must not cause back-side poles or rings to bleed through the globe
 
 Zoom input handling should avoid leaving the globe in a broken interaction state when a pointer sequence ends unexpectedly.
 
@@ -145,6 +150,8 @@ Verification should cover both rendering safety and interaction behavior:
 - manually confirm the globe appears sharper and less opaque than before
 - manually confirm the fuchsia-first palette matches the app's established visual language without losing contrast
 - manually confirm the removed atmosphere shell does not make the globe feel flat or dim
+- manually confirm front-facing beacon poles and rings are fully visible over the globe surface
+- manually confirm back-side beacon geometry still stays hidden behind the globe
 - manually confirm beacon hover, tooltip, click, and selected states still work at different zoom levels
 
 ---

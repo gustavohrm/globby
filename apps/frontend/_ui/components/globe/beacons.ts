@@ -16,6 +16,8 @@ import {
 const GLOBE_RADIUS = 1.5;
 const BEACON_HEIGHT = GLOBE_RADIUS * 0.35;
 const DEFAULT_PRIMARY_COLOR = "#f5d0fe";
+const BEACON_RING_RENDER_ORDER = 4;
+const BEACON_POLE_RENDER_ORDER = 5;
 
 export type Room = {
   id: string;
@@ -48,16 +50,8 @@ export function hashRoomId(id: string): [number, number] {
   return [lat, lon];
 }
 
-export function latLonToVec3(
-  lat: number,
-  lon: number,
-  r: number,
-): Vector3 {
-  return new Vector3(
-    r * Math.cos(lat) * Math.sin(lon),
-    r * Math.sin(lat),
-    r * Math.cos(lat) * Math.cos(lon),
-  );
+export function latLonToVec3(lat: number, lon: number, r: number): Vector3 {
+  return new Vector3(r * Math.cos(lat) * Math.sin(lon), r * Math.sin(lat), r * Math.cos(lat) * Math.cos(lon));
 }
 
 function toRgba(color: Color, alpha: number): string {
@@ -67,9 +61,7 @@ function toRgba(color: Color, alpha: number): string {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
-function buildPoleTexture(
-  primaryColor: ColorRepresentation,
-): CanvasTexture {
+function buildPoleTexture(primaryColor: ColorRepresentation): CanvasTexture {
   const color = new Color(primaryColor);
   const canvas = document.createElement("canvas");
   canvas.width = 2;
@@ -110,14 +102,7 @@ export function createBeacons(
     const dir = latLonToVec3(lat, lon, 1);
 
     // Thinner pole
-    const poleGeo = new CylinderGeometry(
-      0.003,
-      0.006,
-      BEACON_HEIGHT,
-      6,
-      1,
-      true,
-    );
+    const poleGeo = new CylinderGeometry(0.003, 0.006, BEACON_HEIGHT, 6, 1, true);
     const poleMat = new MeshBasicMaterial({
       map: poleTex,
       transparent: true,
@@ -125,10 +110,9 @@ export function createBeacons(
       depthWrite: false,
     });
     const pole = new Mesh(poleGeo, poleMat);
-    pole.position.copy(
-      dir.clone().multiplyScalar(GLOBE_RADIUS + BEACON_HEIGHT / 2),
-    );
+    pole.position.copy(dir.clone().multiplyScalar(GLOBE_RADIUS + BEACON_HEIGHT / 2));
     pole.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), dir);
+    pole.renderOrder = BEACON_POLE_RENDER_ORDER;
     pole.userData = { roomId: room.id, roomName: room.name };
     beaconGroup.add(pole);
 
@@ -144,6 +128,7 @@ export function createBeacons(
     const ring = new Mesh(ringGeo, ringMat);
     ring.position.copy(dir.clone().multiplyScalar(GLOBE_RADIUS + 0.005));
     ring.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), dir);
+    ring.renderOrder = BEACON_RING_RENDER_ORDER;
     beaconGroup.add(ring);
 
     const hitArea = new Mesh(
@@ -154,9 +139,7 @@ export function createBeacons(
         depthWrite: false,
       }),
     );
-    hitArea.position.copy(
-      dir.clone().multiplyScalar(GLOBE_RADIUS + BEACON_HEIGHT * 0.55),
-    );
+    hitArea.position.copy(dir.clone().multiplyScalar(GLOBE_RADIUS + BEACON_HEIGHT * 0.55));
     hitArea.userData = { roomId: room.id, roomName: room.name };
     beaconGroup.add(hitArea);
 
@@ -184,20 +167,12 @@ export function animateBeacons(beacons: Map<string, BeaconEntry>) {
 
     entry.t = (entry.t + pulseRate) % 1;
     entry.pole.scale.set(hoverThickness, selectedHeight, hoverThickness);
-    entry.ring.scale.setScalar(
-      (1 + entry.t * 3) * selectedRingBoost * hoverRingBoost,
-    );
-    entry.ringMat.opacity = Math.max(
-      entry.isSelected ? 0.38 : 0,
-      (1 - entry.t) * (entry.isHovered ? 0.92 : 0.78),
-    );
+    entry.ring.scale.setScalar((1 + entry.t * 3) * selectedRingBoost * hoverRingBoost);
+    entry.ringMat.opacity = Math.max(entry.isSelected ? 0.38 : 0, (1 - entry.t) * (entry.isHovered ? 0.92 : 0.78));
   }
 }
 
-export function disposeBeacons(
-  beacons: Map<string, BeaconEntry>,
-  poleTex: CanvasTexture | null,
-) {
+export function disposeBeacons(beacons: Map<string, BeaconEntry>, poleTex: CanvasTexture | null) {
   if (poleTex) poleTex.dispose();
   for (const { pole, ring, hitArea, ringMat } of beacons.values()) {
     pole.geometry.dispose();
