@@ -1,4 +1,4 @@
-import { CanvasTexture } from "three";
+import { CanvasTexture, SRGBColorSpace } from "three";
 
 type Polygon = [number, number][];
 
@@ -513,20 +513,13 @@ const ALL_CONTINENTS: { polygons: Polygon[] }[] = [
   { polygons: [AUSTRALIA, ...INDONESIA, ...JAPAN, ...NEW_ZEALAND] },
 ];
 
-function lonLatToXY(
-  lon: number,
-  lat: number,
-  w: number,
-  h: number,
-): [number, number] {
+function lonLatToXY(lon: number, lat: number, w: number, h: number): [number, number] {
   return [((lon + 180) / 360) * w, ((90 - lat) / 180) * h];
 }
 
 function smoothPolygon(poly: Polygon, passes: number): Polygon {
   const isClosed =
-    poly.length > 2 &&
-    poly[0][0] === poly[poly.length - 1][0] &&
-    poly[0][1] === poly[poly.length - 1][1];
+    poly.length > 2 && poly[0][0] === poly[poly.length - 1][0] && poly[0][1] === poly[poly.length - 1][1];
   let points = isClosed ? poly.slice(0, -1) : [...poly];
 
   for (let pass = 0; pass < passes; pass++) {
@@ -535,14 +528,8 @@ function smoothPolygon(poly: Polygon, passes: number): Polygon {
       const current = points[i];
       const following = points[(i + 1) % points.length];
       next.push(
-        [
-          current[0] * 0.75 + following[0] * 0.25,
-          current[1] * 0.75 + following[1] * 0.25,
-        ],
-        [
-          current[0] * 0.25 + following[0] * 0.75,
-          current[1] * 0.25 + following[1] * 0.75,
-        ],
+        [current[0] * 0.75 + following[0] * 0.25, current[1] * 0.75 + following[1] * 0.25],
+        [current[0] * 0.25 + following[0] * 0.75, current[1] * 0.25 + following[1] * 0.75],
       );
     }
     points = next;
@@ -555,12 +542,7 @@ function smoothPolygon(poly: Polygon, passes: number): Polygon {
   return points;
 }
 
-function drawPolygonPath(
-  ctx: CanvasRenderingContext2D,
-  poly: Polygon,
-  w: number,
-  h: number,
-) {
+function drawPolygonPath(ctx: CanvasRenderingContext2D, poly: Polygon, w: number, h: number) {
   const smoothed = smoothPolygon(poly, 2);
   ctx.beginPath();
   for (let i = 0; i < smoothed.length; i++) {
@@ -578,10 +560,7 @@ function createCanvas(width: number, height: number): HTMLCanvasElement {
   return canvas;
 }
 
-function tintMask(
-  maskCanvas: HTMLCanvasElement,
-  color: string,
-): HTMLCanvasElement {
+function tintMask(maskCanvas: HTMLCanvasElement, color: string): HTMLCanvasElement {
   const tintedCanvas = createCanvas(maskCanvas.width, maskCanvas.height);
   const tintedCtx = tintedCanvas.getContext("2d")!;
   tintedCtx.drawImage(maskCanvas, 0, 0);
@@ -591,21 +570,13 @@ function tintMask(
   return tintedCanvas;
 }
 
-function buildSoftGlowCanvas(
-  maskCanvas: HTMLCanvasElement,
-  glowColor: string,
-): HTMLCanvasElement {
+function buildSoftGlowCanvas(maskCanvas: HTMLCanvasElement, glowColor: string): HTMLCanvasElement {
   const glowCanvas = createCanvas(maskCanvas.width, maskCanvas.height);
   const glowCtx = glowCanvas.getContext("2d")!;
   glowCtx.drawImage(maskCanvas, 0, 0);
   glowCtx.globalCompositeOperation = "source-in";
 
-  const gradient = glowCtx.createLinearGradient(
-    0,
-    0,
-    glowCanvas.width,
-    glowCanvas.height,
-  );
+  const gradient = glowCtx.createLinearGradient(0, 0, glowCanvas.width, glowCanvas.height);
   gradient.addColorStop(0, "rgba(255, 255, 255, 0.95)");
   gradient.addColorStop(0.4, glowColor);
   gradient.addColorStop(1, "rgba(255, 255, 255, 0.55)");
@@ -615,15 +586,11 @@ function buildSoftGlowCanvas(
   return glowCanvas;
 }
 
-function buildOutlineCanvas(
-  w: number,
-  h: number,
-  outlineColor: string,
-): HTMLCanvasElement {
+function buildOutlineCanvas(w: number, h: number, outlineColor: string): HTMLCanvasElement {
   const outlineCanvas = createCanvas(w, h);
   const outlineCtx = outlineCanvas.getContext("2d")!;
   outlineCtx.strokeStyle = outlineColor;
-  outlineCtx.lineWidth = 2;
+  outlineCtx.lineWidth = 2.5;
   outlineCtx.lineJoin = "round";
   outlineCtx.lineCap = "round";
 
@@ -637,12 +604,7 @@ function buildOutlineCanvas(
   return outlineCanvas;
 }
 
-function drawTerrainDetail(
-  ctx: CanvasRenderingContext2D,
-  maskCanvas: HTMLCanvasElement,
-  w: number,
-  h: number,
-) {
+function drawTerrainDetail(ctx: CanvasRenderingContext2D, maskCanvas: HTMLCanvasElement, w: number, h: number) {
   const detailCanvas = createCanvas(w, h);
   const detailCtx = detailCanvas.getContext("2d")!;
   detailCtx.drawImage(maskCanvas, 0, 0);
@@ -682,11 +644,9 @@ export interface ContinentTextureOptions {
   glowColor: string;
 }
 
-export function buildContinentTexture(
-  options: ContinentTextureOptions,
-): CanvasTexture {
-  const w = 2048;
-  const h = 1024;
+export function buildContinentTexture(options: ContinentTextureOptions): CanvasTexture {
+  const w = 4096;
+  const h = 2048;
   const canvas = createCanvas(w, h);
   const ctx = canvas.getContext("2d")!;
   const landMaskCanvas = createCanvas(w, h);
@@ -705,31 +665,29 @@ export function buildContinentTexture(
   const landFillCanvas = tintMask(landMaskCanvas, options.fillColor);
   const outlineCanvas = buildOutlineCanvas(w, h, options.outlineColor);
   const landGlowCanvas = tintMask(landMaskCanvas, options.glowColor);
-  const softFillGlowCanvas = buildSoftGlowCanvas(
-    landMaskCanvas,
-    options.glowColor,
-  );
+  const softFillGlowCanvas = buildSoftGlowCanvas(landMaskCanvas, options.glowColor);
 
-  ctx.globalAlpha = 0.52;
-  ctx.filter = "blur(22px)";
+  ctx.globalAlpha = 0.34;
+  ctx.filter = "blur(18px)";
   ctx.drawImage(landGlowCanvas, 0, 0);
   ctx.filter = "none";
-  ctx.globalAlpha = 0.46;
-  ctx.filter = "blur(10px)";
+  ctx.globalAlpha = 0.22;
+  ctx.filter = "blur(8px)";
   ctx.drawImage(softFillGlowCanvas, 0, 0);
   ctx.filter = "none";
-  ctx.globalAlpha = 0.2;
-  ctx.filter = "blur(5px)";
+  ctx.globalAlpha = 0.28;
+  ctx.filter = "blur(3px)";
   ctx.drawImage(outlineCanvas, 0, 0);
   ctx.filter = "none";
-  ctx.globalAlpha = 0.58;
+  ctx.globalAlpha = 0.68;
   ctx.drawImage(landFillCanvas, 0, 0);
   drawTerrainDetail(ctx, landMaskCanvas, w, h);
-  ctx.globalAlpha = 0.72;
+  ctx.globalAlpha = 0.9;
   ctx.drawImage(outlineCanvas, 0, 0);
   ctx.globalAlpha = 1;
 
   const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
   tex.needsUpdate = true;
   return tex;
 }

@@ -25,13 +25,19 @@ import { buildContinentTexture } from "./continents";
 import { animateBeacons, createBeacons, type Room, type BeaconEntry } from "./beacons";
 
 const GLOBE_RADIUS = 1.5;
+const SPHERE_SEGMENTS = 96;
+const CAMERA_DEFAULT_DISTANCE = 3.7;
+const CAMERA_MIN_DISTANCE = 2.85;
+const CAMERA_MAX_DISTANCE = 5.15;
+const WHEEL_ZOOM_SENSITIVITY = 0.0024;
+const PINCH_ZOOM_SENSITIVITY = 0.006;
 const FALLBACK_COLORS = {
-  core: "#09030f",
-  land: "#f5d0fe",
-  landOutline: "#f0abfc",
-  atmosphere: "#e879f9",
-  glow: "#d946ef",
-  beacon: "#fae8ff",
+  core: "#040d14",
+  land: "#7bdfea",
+  landOutline: "#e2feff",
+  atmosphere: "#72eeff",
+  glow: "#36d9f8",
+  beacon: "#f0ffff",
   text: "#f8fafc",
 };
 
@@ -77,6 +83,9 @@ class AppGlobe extends HTMLElement {
   private palette!: GlobePalette;
   private selectedRoomId = "";
   private hoveredRoomId = "";
+  private cameraDistance = CAMERA_DEFAULT_DISTANCE;
+  private pinchDistance = 0;
+  private activePointers = new Map<number, { x: number; y: number }>();
 
   static get observedAttributes() {
     return ["selected-room"];
@@ -97,8 +106,8 @@ class AppGlobe extends HTMLElement {
       "overflow:hidden",
       "position:relative",
       `background:
-        radial-gradient(circle at 50% 48%, ${toRgba(this.palette.glow, 0.2)} 0%, ${toRgba(this.palette.atmosphere, 0.12)} 22%, rgba(0, 0, 0, 0) 48%),
-        radial-gradient(circle at 50% 50%, ${toRgba(this.palette.glow, 0.1)} 0%, rgba(0, 0, 0, 0) 62%),
+        radial-gradient(circle at 50% 46%, ${toRgba(this.palette.beacon, 0.18)} 0%, ${toRgba(this.palette.glow, 0.22)} 14%, ${toRgba(this.palette.atmosphere, 0.14)} 28%, rgba(0, 0, 0, 0) 56%),
+        radial-gradient(circle at 50% 60%, ${toRgba(this.palette.glow, 0.12)} 0%, rgba(0, 0, 0, 0) 60%),
         linear-gradient(180deg, ${toRgba(this.palette.core, 0.98)} 0%, ${this.palette.coreCss} 100%)`,
     ].join(";");
     this.initRenderer();
@@ -118,7 +127,9 @@ class AppGlobe extends HTMLElement {
       this.canvas.removeEventListener("pointerdown", this.onPointerDown);
       this.canvas.removeEventListener("pointermove", this.onPointerMove);
       this.canvas.removeEventListener("pointerup", this.onPointerUp);
+      this.canvas.removeEventListener("pointercancel", this.onPointerCancel);
       this.canvas.removeEventListener("pointerleave", this.onPointerLeave);
+      this.canvas.removeEventListener("wheel", this.onWheel);
       this.canvas = null;
     }
     this.disposeScene();
@@ -137,16 +148,17 @@ class AppGlobe extends HTMLElement {
 
   private initRenderer() {
     this.renderer = new WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 1.18;
     this.renderer.setClearColor(this.palette.core, 0);
     this.onResize();
     this.renderer.domElement.style.display = "block";
     this.renderer.domElement.style.position = "relative";
     this.renderer.domElement.style.zIndex = "1";
     this.renderer.domElement.style.cursor = "grab";
+    this.renderer.domElement.style.touchAction = "none";
     this.appendChild(this.renderer.domElement);
     this.canvas = this.renderer.domElement;
 
@@ -159,50 +171,57 @@ class AppGlobe extends HTMLElement {
     this.scene = new Scene();
     const w = this.offsetWidth || window.innerWidth;
     const h = this.offsetHeight || window.innerHeight;
-    this.camera = new PerspectiveCamera(45, w / h, 0.1, 100);
-    this.camera.position.z = 4.5;
+    this.camera = new PerspectiveCamera(38, w / h, 0.1, 100);
+    this.setCameraDistance(CAMERA_DEFAULT_DISTANCE);
 
-    this.scene.add(new AmbientLight(this.palette.atmosphere.clone(), 1.35));
-    const skyLight = new HemisphereLight(
-      this.palette.beacon.clone(),
-      this.palette.core.clone(),
-      1.15,
-    );
+    this.scene.add(new AmbientLight(this.palette.atmosphere.clone(), 1.55));
+    const skyLight = new HemisphereLight(this.palette.beacon.clone(), this.palette.core.clone(), 1.35);
     this.scene.add(skyLight);
-    const keyLight = new PointLight(this.palette.glow, 7, 12, 2);
-    keyLight.position.set(3.2, 2.1, 4.6);
+    const keyLight = new PointLight(this.palette.glow, 8.5, 14, 2);
+    keyLight.position.set(3.1, 2.3, 4.2);
     this.scene.add(keyLight);
-    const fillLight = new PointLight(this.palette.atmosphere, 4.5, 11, 2);
-    fillLight.position.set(-2.8, -0.9, 3.8);
+    const fillLight = new PointLight(this.palette.atmosphere, 5.4, 12, 2);
+    fillLight.position.set(-2.6, -1.1, 3.7);
     this.scene.add(fillLight);
 
     const innerGlowMat = new MeshBasicMaterial({
-      color: this.palette.glow.clone().lerp(this.palette.beacon, 0.14),
+      color: this.palette.glow.clone().lerp(this.palette.beacon, 0.22),
       transparent: true,
-      opacity: 0.16,
+      opacity: 0.22,
       side: BackSide,
       depthWrite: false,
       blending: AdditiveBlending,
     });
     const innerGlow = new Mesh(
-      new SphereGeometry(GLOBE_RADIUS * 0.965, 64, 64),
+      new SphereGeometry(GLOBE_RADIUS * 0.968, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
       innerGlowMat,
     );
     innerGlow.renderOrder = 0;
     this.globeGroup.add(innerGlow);
 
-    const globeMat = new MeshLambertMaterial({
-      color: this.palette.core.clone().lerp(this.palette.atmosphere, 0.08),
-      emissive: this.palette.glow.clone().lerp(this.palette.atmosphere, 0.3),
-      emissiveIntensity: 0.08,
-      transparent: true,
-      opacity: 0.7,
-    });
-    const globe = new Mesh(
-      new SphereGeometry(GLOBE_RADIUS, 64, 64),
-      globeMat,
+    const atmosphereShell = new Mesh(
+      new SphereGeometry(GLOBE_RADIUS * 1.055, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
+      new MeshBasicMaterial({
+        color: this.palette.atmosphere.clone().lerp(this.palette.beacon, 0.28),
+        transparent: true,
+        opacity: 0.16,
+        side: BackSide,
+        depthWrite: false,
+        blending: AdditiveBlending,
+      }),
     );
-    globe.renderOrder = 1;
+    atmosphereShell.renderOrder = 1;
+    this.globeGroup.add(atmosphereShell);
+
+    const globeMat = new MeshLambertMaterial({
+      color: this.palette.core.clone().lerp(this.palette.atmosphere, 0.13),
+      emissive: this.palette.glow.clone().lerp(this.palette.atmosphere, 0.44),
+      emissiveIntensity: 0.16,
+      transparent: true,
+      opacity: 0.86,
+    });
+    const globe = new Mesh(new SphereGeometry(GLOBE_RADIUS, SPHERE_SEGMENTS, SPHERE_SEGMENTS), globeMat);
+    globe.renderOrder = 2;
     this.globeGroup.add(globe);
 
     this.continentTex = buildContinentTexture({
@@ -210,17 +229,18 @@ class AppGlobe extends HTMLElement {
       outlineColor: this.palette.landOutlineCss,
       glowColor: this.palette.atmosphereCss,
     });
+    this.continentTex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
     const continentMat = new MeshBasicMaterial({
       map: this.continentTex,
       transparent: true,
-      opacity: 0.76,
+      opacity: 0.9,
       depthWrite: false,
     });
     const continents = new Mesh(
-      new SphereGeometry(GLOBE_RADIUS * 1.002, 64, 64),
+      new SphereGeometry(GLOBE_RADIUS * 1.0025, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
       continentMat,
     );
-    continents.renderOrder = 2;
+    continents.renderOrder = 3;
     this.globeGroup.add(continents);
 
     this.globeGroup.add(this.beaconGroup);
@@ -331,49 +351,127 @@ class AppGlobe extends HTMLElement {
     }
   }
 
+  private setCameraDistance(distance: number) {
+    this.cameraDistance = Math.max(CAMERA_MIN_DISTANCE, Math.min(CAMERA_MAX_DISTANCE, distance));
+
+    if (this.camera) {
+      this.camera.position.z = this.cameraDistance;
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
+  private zoomCamera(delta: number) {
+    this.setCameraDistance(this.cameraDistance + delta);
+  }
+
+  private clearHoverState() {
+    if (this.hoveredRoomId) {
+      this.hoveredRoomId = "";
+      this.syncBeaconStates();
+    }
+  }
+
+  private hideTooltip() {
+    this.tooltipEl.style.display = "none";
+  }
+
+  private getActivePointerDistance(): number {
+    const [first, second] = Array.from(this.activePointers.values());
+    if (!first || !second) return 0;
+
+    return Math.hypot(second.x - first.x, second.y - first.y);
+  }
+
   private onPointerDown = (e: PointerEvent) => {
-    this.isDragging = true;
-    this.pointerDownPos = { x: e.clientX, y: e.clientY };
-    this.prevMouse = { x: e.clientX, y: e.clientY };
+    this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this.activePointers.size === 1) {
+      this.isDragging = true;
+      this.pointerDownPos = { x: e.clientX, y: e.clientY };
+      this.prevMouse = { x: e.clientX, y: e.clientY };
+    } else {
+      this.isDragging = false;
+      this.pinchDistance = this.getActivePointerDistance();
+      this.clearHoverState();
+      this.hideTooltip();
+    }
+
     this.renderer.domElement.style.cursor = "grabbing";
     (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
   };
 
   private onPointerMove = (e: PointerEvent) => {
-    if (this.isDragging) {
-      if (this.hoveredRoomId) {
-        this.hoveredRoomId = "";
-        this.syncBeaconStates();
+    if (this.activePointers.has(e.pointerId)) {
+      this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    if (this.activePointers.size >= 2) {
+      const nextDistance = this.getActivePointerDistance();
+      if (this.pinchDistance > 0) {
+        this.zoomCamera((this.pinchDistance - nextDistance) * PINCH_ZOOM_SENSITIVITY);
       }
+      this.pinchDistance = nextDistance;
+      this.clearHoverState();
+      this.hideTooltip();
+      this.renderer.domElement.style.cursor = "grabbing";
+      return;
+    }
+
+    if (this.isDragging) {
+      this.clearHoverState();
       const dx = e.clientX - this.prevMouse.x;
       const dy = e.clientY - this.prevMouse.y;
       this.globeGroup.rotation.y += dx * 0.005;
       this.globeGroup.rotation.x += dy * 0.003;
       this.globeGroup.rotation.x = Math.max(-1.2, Math.min(1.2, this.globeGroup.rotation.x));
       this.prevMouse = { x: e.clientX, y: e.clientY };
-      this.tooltipEl.style.display = "none";
-    } else {
+      this.hideTooltip();
+    } else if (this.activePointers.size === 0) {
       this.checkHover(e);
     }
   };
 
   private onPointerUp = (e: PointerEvent) => {
-    if (!this.isDragging) return;
+    const wasPinching = this.activePointers.size > 1;
+    this.activePointers.delete(e.pointerId);
     this.isDragging = false;
-    (e.currentTarget as HTMLCanvasElement).releasePointerCapture(e.pointerId);
+    this.pinchDistance = this.activePointers.size > 1 ? this.getActivePointerDistance() : 0;
+
+    const canvas = e.currentTarget as HTMLCanvasElement;
+    if (canvas.hasPointerCapture(e.pointerId)) {
+      canvas.releasePointerCapture(e.pointerId);
+    }
+
     const moved = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
-    if (moved < 4) this.checkClick(e);
-    this.renderer.domElement.style.cursor = this.hoveredRoomId ? "pointer" : "grab";
+    if (!wasPinching && moved < 4) this.checkClick(e);
+    this.renderer.domElement.style.cursor =
+      this.activePointers.size > 0 ? "grabbing" : this.hoveredRoomId ? "pointer" : "grab";
+  };
+
+  private onPointerCancel = (e: PointerEvent) => {
+    this.activePointers.delete(e.pointerId);
+    this.isDragging = false;
+    this.pinchDistance = this.activePointers.size > 1 ? this.getActivePointerDistance() : 0;
+    this.clearHoverState();
+    this.hideTooltip();
+    this.renderer.domElement.style.cursor = this.activePointers.size > 0 ? "grabbing" : "grab";
   };
 
   private onPointerLeave = () => {
-    this.isDragging = false;
-    if (this.hoveredRoomId) {
-      this.hoveredRoomId = "";
-      this.syncBeaconStates();
+    if (this.activePointers.size > 0) {
+      return;
     }
-    this.tooltipEl.style.display = "none";
+
+    this.isDragging = false;
+    this.clearHoverState();
+    this.hideTooltip();
     this.renderer.domElement.style.cursor = "grab";
+  };
+
+  private onWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    this.zoomCamera(e.deltaY * WHEEL_ZOOM_SENSITIVITY);
+    this.hideTooltip();
+    this.renderer.domElement.style.cursor = this.hoveredRoomId ? "pointer" : "grab";
   };
 
   private setupPointerEvents() {
@@ -381,7 +479,9 @@ class AppGlobe extends HTMLElement {
     canvas.addEventListener("pointerdown", this.onPointerDown);
     canvas.addEventListener("pointermove", this.onPointerMove);
     canvas.addEventListener("pointerup", this.onPointerUp);
+    canvas.addEventListener("pointercancel", this.onPointerCancel);
     canvas.addEventListener("pointerleave", this.onPointerLeave);
+    canvas.addEventListener("wheel", this.onWheel, { passive: false });
   }
 
   private getRay(e: PointerEvent): Raycaster {
@@ -427,11 +527,8 @@ class AppGlobe extends HTMLElement {
       this.tooltipEl.style.top = `${e.offsetY - 10}px`;
       this.renderer.domElement.style.cursor = "pointer";
     } else {
-      if (this.hoveredRoomId) {
-        this.hoveredRoomId = "";
-        this.syncBeaconStates();
-      }
-      this.tooltipEl.style.display = "none";
+      this.clearHoverState();
+      this.hideTooltip();
       this.renderer.domElement.style.cursor = "grab";
     }
   }
@@ -450,8 +547,8 @@ class AppGlobe extends HTMLElement {
 
   private tick = () => {
     this.rafId = requestAnimationFrame(this.tick);
-    if (!this.isDragging && !this.hoveredRoomId) {
-      this.globeGroup.rotation.y += 0.001;
+    if (this.activePointers.size === 0 && !this.hoveredRoomId) {
+      this.globeGroup.rotation.y += 0.0009;
     }
     animateBeacons(this.beacons);
     this.renderer.render(this.scene, this.camera);

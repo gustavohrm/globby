@@ -12,36 +12,12 @@
   --color-surface: var(--color-slate-800);
   --color-text: var(--color-neutral-50);
   --color-text-secondary: var(--color-neutral-400);
-  --color-globe-core: color-mix(
-    in srgb,
-    var(--color-slate-950) 78%,
-    var(--color-fuchsia-950)
-  );
-  --color-globe-land: color-mix(
-    in srgb,
-    var(--color-fuchsia-100) 74%,
-    var(--color-pink-100)
-  );
-  --color-globe-land-outline: color-mix(
-    in srgb,
-    var(--color-fuchsia-100) 70%,
-    var(--color-neutral-50)
-  );
-  --color-globe-atmosphere: color-mix(
-    in srgb,
-    var(--color-fuchsia-400) 70%,
-    var(--color-pink-300)
-  );
-  --color-globe-glow: color-mix(
-    in srgb,
-    var(--color-fuchsia-500) 74%,
-    var(--color-pink-400)
-  );
-  --color-globe-beacon: color-mix(
-    in srgb,
-    var(--color-fuchsia-200) 72%,
-    var(--color-neutral-50)
-  );
+  --color-globe-core: color-mix(in srgb, var(--color-slate-950) 82%, var(--color-cyan-950));
+  --color-globe-land: color-mix(in srgb, var(--color-cyan-200) 72%, var(--color-sky-100));
+  --color-globe-land-outline: color-mix(in srgb, var(--color-cyan-50) 76%, var(--color-neutral-50));
+  --color-globe-atmosphere: color-mix(in srgb, var(--color-cyan-300) 74%, var(--color-sky-200));
+  --color-globe-glow: color-mix(in srgb, var(--color-cyan-400) 70%, var(--color-sky-300));
+  --color-globe-beacon: color-mix(in srgb, var(--color-cyan-100) 72%, var(--color-neutral-50));
 
   --color-success: var(--color-emerald-500);
   --color-success-contrast: var(--color-emerald-50);
