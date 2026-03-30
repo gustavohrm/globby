@@ -1,13 +1,38 @@
 import * as THREE from "three";
 import { buildContinentTexture } from "./continents";
-import {
-  animateBeacons,
-  createBeacons,
-  type BeaconEntry,
-  type Room,
-} from "./beacons";
+import { animateBeacons, createBeacons, type Room, type BeaconEntry } from "./beacons";
 
 const GLOBE_RADIUS = 1.5;
+const FALLBACK_COLORS = {
+  core: "#09030f",
+  land: "#f5d0fe",
+  landOutline: "#f0abfc",
+  atmosphere: "#e879f9",
+  glow: "#d946ef",
+  beacon: "#fae8ff",
+  text: "#f8fafc",
+};
+
+type GlobePalette = {
+  coreCss: string;
+  landCss: string;
+  landOutlineCss: string;
+  atmosphereCss: string;
+  glowCss: string;
+  beaconCss: string;
+  textCss: string;
+  core: THREE.Color;
+  atmosphere: THREE.Color;
+  glow: THREE.Color;
+  beacon: THREE.Color;
+};
+
+function toRgba(color: THREE.Color, alpha: number): string {
+  const red = Math.round(color.r * 255);
+  const green = Math.round(color.g * 255);
+  const blue = Math.round(color.b * 255);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
 
 class AppGlobe extends HTMLElement {
   private renderer!: THREE.WebGLRenderer;
@@ -27,22 +52,33 @@ class AppGlobe extends HTMLElement {
   private onRoomsChanged = () => void this.fetchAndRender();
   private raycaster = new THREE.Raycaster();
   private ndc = new THREE.Vector2();
+  private palette!: GlobePalette;
+  private selectedRoomId = "";
+  private hoveredRoomId = "";
 
   static get observedAttributes() {
     return ["selected-room"];
   }
 
-  attributeChangedCallback(
-    name: string,
-    _old: string | null,
-    value: string | null,
-  ) {
-    if (name === "selected-room") this.highlightBeacon(value ?? "");
+  attributeChangedCallback(name: string, _old: string | null, value: string | null) {
+    if (name === "selected-room") {
+      this.selectedRoomId = value ?? "";
+      this.syncBeaconStates();
+    }
   }
 
   connectedCallback() {
     this.innerHTML = "";
-    this.style.cssText = "display:block;overflow:hidden;";
+    this.palette = this.resolvePalette();
+    this.style.cssText = [
+      "display:block",
+      "overflow:hidden",
+      "position:relative",
+      `background:
+        radial-gradient(circle at 50% 48%, ${toRgba(this.palette.glow, 0.2)} 0%, ${toRgba(this.palette.atmosphere, 0.12)} 22%, rgba(0, 0, 0, 0) 48%),
+        radial-gradient(circle at 50% 50%, ${toRgba(this.palette.glow, 0.1)} 0%, rgba(0, 0, 0, 0) 62%),
+        linear-gradient(180deg, ${toRgba(this.palette.core, 0.98)} 0%, ${this.palette.coreCss} 100%)`,
+    ].join(";");
     this.initRenderer();
     this.buildScene();
     this.setupPointerEvents();
@@ -80,15 +116,20 @@ class AppGlobe extends HTMLElement {
   private initRenderer() {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setClearColor(0x030712, 1);
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.setClearColor(this.palette.core, 0);
     this.onResize();
     this.renderer.domElement.style.display = "block";
+    this.renderer.domElement.style.position = "relative";
+    this.renderer.domElement.style.zIndex = "1";
+    this.renderer.domElement.style.cursor = "grab";
     this.appendChild(this.renderer.domElement);
     this.canvas = this.renderer.domElement;
 
     this.tooltipEl = document.createElement("div");
-    this.tooltipEl.style.cssText =
-      "position:absolute;pointer-events:none;background:rgba(15,23,42,0.9);border:1px solid rgba(192,38,211,0.5);color:#e2e8f0;font-size:12px;padding:4px 10px;border-radius:4px;display:none;white-space:nowrap;z-index:10;";
+    this.tooltipEl.style.cssText = `position:absolute;pointer-events:none;background:${toRgba(this.palette.core, 0.92)};border:1px solid ${toRgba(this.palette.beacon, 0.55)};box-shadow:0 0 22px ${toRgba(this.palette.glow, 0.18)};color:${this.palette.textCss};font-size:12px;padding:4px 10px;border-radius:999px;display:none;white-space:nowrap;z-index:10;backdrop-filter:blur(10px);`;
     this.appendChild(this.tooltipEl);
   }
 
@@ -99,53 +140,66 @@ class AppGlobe extends HTMLElement {
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
     this.camera.position.z = 4.5;
 
-    // Lighting
-    this.scene.add(new THREE.AmbientLight(0x1a1a2e, 3));
-    const dir = new THREE.DirectionalLight(0xc026d3, 2);
-    dir.position.set(5, 3, 5);
-    this.scene.add(dir);
-
-    // Base globe (dark ocean)
-    const globeMat = new THREE.MeshPhongMaterial({
-      color: 0x050d1a,
-      emissive: 0x1a0028,
-      emissiveIntensity: 0.4,
-      shininess: 60,
-      transparent: true,
-      opacity: 0.95,
-    });
-    this.globeGroup.add(
-      new THREE.Mesh(new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64), globeMat),
+    this.scene.add(new THREE.AmbientLight(this.palette.atmosphere.clone(), 1.35));
+    const skyLight = new THREE.HemisphereLight(
+      this.palette.beacon.clone(),
+      this.palette.core.clone(),
+      1.15,
     );
+    this.scene.add(skyLight);
+    const keyLight = new THREE.PointLight(this.palette.glow, 7, 12, 2);
+    keyLight.position.set(3.2, 2.1, 4.6);
+    this.scene.add(keyLight);
+    const fillLight = new THREE.PointLight(this.palette.atmosphere, 4.5, 11, 2);
+    fillLight.position.set(-2.8, -0.9, 3.8);
+    this.scene.add(fillLight);
 
-    // Continent layer
-    this.continentTex = buildContinentTexture();
+    const innerGlowMat = new THREE.MeshBasicMaterial({
+      color: this.palette.glow.clone().lerp(this.palette.beacon, 0.14),
+      transparent: true,
+      opacity: 0.16,
+      side: THREE.BackSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const innerGlow = new THREE.Mesh(
+      new THREE.SphereGeometry(GLOBE_RADIUS * 0.965, 64, 64),
+      innerGlowMat,
+    );
+    innerGlow.renderOrder = 0;
+    this.globeGroup.add(innerGlow);
+
+    const globeMat = new THREE.MeshLambertMaterial({
+      color: this.palette.core.clone().lerp(this.palette.atmosphere, 0.08),
+      emissive: this.palette.glow.clone().lerp(this.palette.atmosphere, 0.3),
+      emissiveIntensity: 0.08,
+      transparent: true,
+      opacity: 0.7,
+    });
+    const globe = new THREE.Mesh(
+      new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64),
+      globeMat,
+    );
+    globe.renderOrder = 1;
+    this.globeGroup.add(globe);
+
+    this.continentTex = buildContinentTexture({
+      fillColor: this.palette.landCss,
+      outlineColor: this.palette.landOutlineCss,
+      glowColor: this.palette.atmosphereCss,
+    });
     const continentMat = new THREE.MeshBasicMaterial({
       map: this.continentTex,
       transparent: true,
+      opacity: 0.76,
       depthWrite: false,
     });
-    this.globeGroup.add(
-      new THREE.Mesh(
-        new THREE.SphereGeometry(GLOBE_RADIUS * 1.002, 64, 64),
-        continentMat,
-      ),
+    const continents = new THREE.Mesh(
+      new THREE.SphereGeometry(GLOBE_RADIUS * 1.002, 64, 64),
+      continentMat,
     );
-
-    // Atmosphere glow (back-side sphere)
-    const atmMat = new THREE.MeshPhongMaterial({
-      color: 0xc026d3,
-      transparent: true,
-      opacity: 0.08,
-      side: THREE.BackSide,
-      depthWrite: false,
-    });
-    this.globeGroup.add(
-      new THREE.Mesh(
-        new THREE.SphereGeometry(GLOBE_RADIUS * 1.1, 64, 64),
-        atmMat,
-      ),
-    );
+    continents.renderOrder = 2;
+    this.globeGroup.add(continents);
 
     this.globeGroup.add(this.beaconGroup);
     this.scene.add(this.globeGroup);
@@ -155,6 +209,10 @@ class AppGlobe extends HTMLElement {
     if (this.continentTex) {
       this.continentTex.dispose();
       this.continentTex = null;
+    }
+    if (this.poleTex) {
+      this.poleTex.dispose();
+      this.poleTex = null;
     }
     this.globeGroup.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
@@ -173,20 +231,81 @@ class AppGlobe extends HTMLElement {
       const res = await fetch("/api/v1/rooms");
       if (!res.ok) return;
       const { rooms } = (await res.json()) as { rooms: Room[] };
-      this.poleTex = createBeacons(
-        rooms,
-        this.beaconGroup,
-        this.beacons,
-      );
+      if (this.poleTex) {
+        this.poleTex.dispose();
+      }
+      this.poleTex = createBeacons(rooms, this.beaconGroup, this.beacons, this.palette.beaconCss);
+      this.syncBeaconStates();
     } catch {
       // ignore — globe still renders without beacons
     }
   }
 
-  private highlightBeacon(roomId: string) {
-    if (!this.scene) return;
-    for (const [id, { pole }] of this.beacons) {
-      pole.scale.setScalar(id === roomId ? 1.6 : 1);
+  private resolvePalette(): GlobePalette {
+    const landCss = this.resolveCssColor("--color-globe-land", FALLBACK_COLORS.land);
+    const coreCss = this.resolveCssColor("--color-globe-core", FALLBACK_COLORS.core);
+    const landOutlineCss = this.resolveCssColor("--color-globe-land-outline", FALLBACK_COLORS.landOutline);
+    const atmosphereCss = this.resolveCssColor("--color-globe-atmosphere", FALLBACK_COLORS.atmosphere);
+    const glowCss = this.resolveCssColor("--color-globe-glow", FALLBACK_COLORS.glow);
+    const beaconCss = this.resolveCssColor("--color-globe-beacon", FALLBACK_COLORS.beacon);
+    const textCss = this.resolveCssColor("--color-text", FALLBACK_COLORS.text);
+
+    return {
+      coreCss,
+      landCss,
+      landOutlineCss,
+      atmosphereCss,
+      glowCss,
+      beaconCss,
+      textCss,
+      core: new THREE.Color(coreCss),
+      atmosphere: new THREE.Color(atmosphereCss),
+      glow: new THREE.Color(glowCss),
+      beacon: new THREE.Color(beaconCss),
+    };
+  }
+
+  private resolveCssColor(variableName: string, fallback: string): string {
+    const probe = document.createElement("span");
+    probe.style.position = "fixed";
+    probe.style.opacity = "0";
+    probe.style.pointerEvents = "none";
+    probe.style.backgroundColor = `var(${variableName}, ${fallback})`;
+    document.body.appendChild(probe);
+    const resolved = getComputedStyle(probe).backgroundColor || fallback;
+    probe.remove();
+    return this.normalizeCssColor(resolved, fallback);
+  }
+
+  private normalizeCssColor(value: string, fallback: string): string {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return fallback;
+
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = fallback;
+
+    try {
+      ctx.fillStyle = value;
+    } catch {
+      return fallback;
+    }
+
+    ctx.fillRect(0, 0, 1, 1);
+    const [red, green, blue, alpha] = ctx.getImageData(0, 0, 1, 1).data;
+    if (alpha === 255) {
+      return `rgb(${red}, ${green}, ${blue})`;
+    }
+
+    return `rgba(${red}, ${green}, ${blue}, ${(alpha / 255).toFixed(3)})`;
+  }
+
+  private syncBeaconStates() {
+    for (const [roomId, entry] of this.beacons) {
+      entry.isSelected = roomId === this.selectedRoomId;
+      entry.isHovered = roomId === this.hoveredRoomId;
     }
   }
 
@@ -194,19 +313,21 @@ class AppGlobe extends HTMLElement {
     this.isDragging = true;
     this.pointerDownPos = { x: e.clientX, y: e.clientY };
     this.prevMouse = { x: e.clientX, y: e.clientY };
+    this.renderer.domElement.style.cursor = "grabbing";
     (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
   };
 
   private onPointerMove = (e: PointerEvent) => {
     if (this.isDragging) {
+      if (this.hoveredRoomId) {
+        this.hoveredRoomId = "";
+        this.syncBeaconStates();
+      }
       const dx = e.clientX - this.prevMouse.x;
       const dy = e.clientY - this.prevMouse.y;
       this.globeGroup.rotation.y += dx * 0.005;
       this.globeGroup.rotation.x += dy * 0.003;
-      this.globeGroup.rotation.x = Math.max(
-        -1.2,
-        Math.min(1.2, this.globeGroup.rotation.x),
-      );
+      this.globeGroup.rotation.x = Math.max(-1.2, Math.min(1.2, this.globeGroup.rotation.x));
       this.prevMouse = { x: e.clientX, y: e.clientY };
       this.tooltipEl.style.display = "none";
     } else {
@@ -217,16 +338,20 @@ class AppGlobe extends HTMLElement {
   private onPointerUp = (e: PointerEvent) => {
     if (!this.isDragging) return;
     this.isDragging = false;
-    const moved = Math.hypot(
-      e.clientX - this.pointerDownPos.x,
-      e.clientY - this.pointerDownPos.y,
-    );
+    (e.currentTarget as HTMLCanvasElement).releasePointerCapture(e.pointerId);
+    const moved = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
     if (moved < 4) this.checkClick(e);
+    this.renderer.domElement.style.cursor = this.hoveredRoomId ? "pointer" : "grab";
   };
 
   private onPointerLeave = () => {
     this.isDragging = false;
+    if (this.hoveredRoomId) {
+      this.hoveredRoomId = "";
+      this.syncBeaconStates();
+    }
     this.tooltipEl.style.display = "none";
+    this.renderer.domElement.style.cursor = "grab";
   };
 
   private setupPointerEvents() {
@@ -245,34 +370,65 @@ class AppGlobe extends HTMLElement {
     return this.raycaster;
   }
 
+  private isFrontFacing(object: THREE.Object3D): boolean {
+    const globeCenter = this.globeGroup.getWorldPosition(new THREE.Vector3());
+    const point = object.getWorldPosition(new THREE.Vector3());
+    const surfaceNormal = point.clone().sub(globeCenter).normalize();
+    const toCamera = this.camera.position.clone().sub(point).normalize();
+    return surfaceNormal.dot(toCamera) > 0;
+  }
+
+  private getIntersectedBeacon(e: PointerEvent): { roomId: string; roomName: string } | null {
+    const targets = Array.from(this.beacons.values()).map(({ hitArea }) => hitArea);
+    const hits = this.getRay(e).intersectObjects(targets);
+    for (const hit of hits) {
+      if (!this.isFrontFacing(hit.object)) continue;
+      const { roomId, roomName } = hit.object.userData as {
+        roomId: string;
+        roomName: string;
+      };
+      return { roomId, roomName };
+    }
+    return null;
+  }
+
   private checkHover(e: PointerEvent) {
-    const poles = Array.from(this.beacons.values()).map((b) => b.pole);
-    const hits = this.getRay(e).intersectObjects(poles);
-    if (hits.length > 0) {
-      const { roomName } = hits[0].object.userData as { roomName: string };
-      this.tooltipEl.textContent = roomName;
+    const beacon = this.getIntersectedBeacon(e);
+    if (beacon) {
+      if (this.hoveredRoomId !== beacon.roomId) {
+        this.hoveredRoomId = beacon.roomId;
+        this.syncBeaconStates();
+      }
+      this.tooltipEl.textContent = beacon.roomName;
       this.tooltipEl.style.display = "block";
       this.tooltipEl.style.left = `${e.offsetX + 14}px`;
       this.tooltipEl.style.top = `${e.offsetY - 10}px`;
+      this.renderer.domElement.style.cursor = "pointer";
     } else {
+      if (this.hoveredRoomId) {
+        this.hoveredRoomId = "";
+        this.syncBeaconStates();
+      }
       this.tooltipEl.style.display = "none";
+      this.renderer.domElement.style.cursor = "grab";
     }
   }
 
   private checkClick(e: PointerEvent) {
-    const poles = Array.from(this.beacons.values()).map((b) => b.pole);
-    const hits = this.getRay(e).intersectObjects(poles);
-    if (hits.length > 0) {
-      const { roomId } = hits[0].object.userData as { roomId: string };
+    const beacon = this.getIntersectedBeacon(e);
+    if (beacon) {
       this.dispatchEvent(
-        new CustomEvent("room-select", { bubbles: true, detail: { roomId } }),
+        new CustomEvent("room-select", {
+          bubbles: true,
+          detail: { roomId: beacon.roomId },
+        }),
       );
     }
   }
 
   private tick = () => {
     this.rafId = requestAnimationFrame(this.tick);
-    if (!this.isDragging) {
+    if (!this.isDragging && !this.hoveredRoomId) {
       this.globeGroup.rotation.y += 0.001;
     }
     animateBeacons(this.beacons);

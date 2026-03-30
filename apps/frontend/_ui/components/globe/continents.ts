@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 type Polygon = [number, number][];
 
-// Simplified continent outlines as [longitude, latitude] pairs
+// Equirectangular landmass outlines as [longitude, latitude] pairs
 const NORTH_AMERICA: Polygon = [
   [-168, 65],
   [-162, 60],
@@ -126,115 +126,85 @@ const SOUTH_AMERICA: Polygon = [
 
 const EUROPE: Polygon = [
   [-10, 36],
-  [-5, 36],
-  [0, 38],
-  [3, 43],
-  [-2, 43],
-  [-5, 44],
-  [-9, 43],
-  [-10, 44],
+  [-9, 40],
+  [-8, 43],
+  [-5, 45],
   [-2, 48],
-  [2, 49],
-  [5, 51],
-  [4, 52],
-  [7, 54],
-  [8, 55],
-  [12, 55],
-  [13, 54],
-  [15, 54],
-  [18, 55],
-  [22, 55],
-  [24, 56],
-  [28, 58],
-  [30, 60],
-  [26, 62],
-  [25, 65],
-  [20, 64],
-  [18, 63],
-  [12, 58],
-  [10, 57],
-  [5, 53],
-  [3, 52],
-  [-1, 51],
-  [-5, 50],
-  [-6, 54],
-  [-5, 56],
-  [-6, 58],
-  [-3, 58],
-  [-2, 57],
-  [0, 58],
-  [-2, 60],
-  [-5, 58],
-  [-7, 58],
-  [-8, 54],
-  [-10, 51],
+  [2, 50],
+  [6, 52],
+  [10, 54],
+  [14, 55],
+  [18, 56],
+  [22, 56],
+  [26, 55],
+  [29, 54],
+  [31, 52],
+  [30, 49],
+  [28, 46],
+  [25, 43],
+  [22, 41],
+  [19, 40],
+  [16, 39],
+  [13, 39],
+  [10, 40],
+  [7, 42],
+  [4, 43],
+  [1, 43],
+  [-2, 43],
+  [-5, 42],
+  [-8, 40],
   [-10, 36],
 ];
 
 const AFRICA: Polygon = [
-  [-17, 14],
-  [-16, 12],
-  [-12, 9],
-  [-8, 5],
+  [-17, 37],
+  [-10, 36],
+  [-4, 35],
+  [2, 35],
+  [8, 36],
+  [14, 34],
+  [20, 32],
+  [26, 32],
+  [31, 31],
+  [34, 29],
+  [36, 25],
+  [40, 20],
+  [44, 15],
+  [47, 12],
+  [50, 11],
+  [49, 7],
+  [45, 4],
+  [43, 0],
+  [42, -5],
+  [40, -10],
+  [39, -15],
+  [37, -20],
+  [35, -25],
+  [32, -29],
+  [28, -33],
+  [23, -35],
+  [18, -35],
+  [14, -34],
+  [11, -31],
+  [9, -26],
+  [8, -20],
+  [10, -12],
+  [11, -5],
+  [10, 0],
+  [8, 3],
+  [5, 4],
   [2, 5],
-  [8, 4],
-  [10, 2],
-  [10, -1],
-  [12, -5],
-  [16, -5],
-  [20, -10],
-  [28, -15],
-  [32, -18],
-  [35, -22],
-  [36, -26],
-  [33, -30],
-  [30, -34],
-  [27, -34],
-  [22, -34],
-  [18, -32],
-  [16, -28],
-  [14, -24],
-  [12, -18],
-  [12, -12],
-  [10, -5],
-  [8, 0],
-  [5, 5],
-  [2, 5],
-  [-5, 5],
-  [-8, 5],
-  [-10, 7],
-  [-15, 10],
+  [-2, 5],
+  [-6, 5],
+  [-10, 6],
+  [-14, 9],
   [-17, 14],
-  [-17, 16],
-  [-15, 20],
-  [-12, 24],
-  [-8, 28],
-  [-5, 32],
-  [-2, 35],
-  [0, 36],
-  [5, 37],
-  [10, 37],
-  [12, 35],
-  [15, 32],
-  [25, 32],
-  [32, 32],
-  [35, 32],
-  [37, 30],
-  [42, 27],
-  [45, 25],
-  [48, 20],
-  [50, 12],
-  [48, 8],
-  [45, 5],
-  [42, 2],
-  [42, 0],
-  [44, -5],
-  [44, -12],
-  [42, -15],
-  [40, -18],
-  [38, -20],
-  [36, -26],
-  [33, -30],
+  [-17, 20],
+  [-16, 25],
+  [-14, 29],
+  [-12, 32],
+  [-10, 35],
+  [-17, 37],
 ];
 
 const ASIA: Polygon = [
@@ -421,19 +391,18 @@ const JAPAN: Polygon[] = [
 
 const UK: Polygon = [
   [-6, 50],
-  [-2, 50],
-  [0, 51],
-  [2, 52],
-  [1, 53],
-  [-1, 54],
+  [-4, 50],
+  [-2, 51],
+  [0, 52],
+  [1, 54],
+  [0, 56],
   [-2, 55],
-  [-3, 57],
+  [-4, 57],
   [-5, 58],
   [-6, 58],
   [-5, 56],
-  [-4, 55],
-  [-5, 54],
-  [-3, 53],
+  [-4, 54],
+  [-3, 52],
   [-4, 52],
   [-5, 51],
   [-6, 50],
@@ -477,26 +446,21 @@ const NEW_ZEALAND: Polygon[] = [
 ];
 
 const SCANDINAVIA: Polygon = [
-  [5, 58],
-  [7, 58],
-  [10, 59],
-  [12, 60],
-  [15, 62],
-  [16, 64],
-  [18, 66],
-  [20, 68],
-  [22, 70],
-  [25, 71],
-  [30, 70],
-  [28, 68],
-  [24, 65],
-  [20, 63],
-  [18, 60],
-  [16, 58],
-  [14, 56],
-  [12, 56],
-  [10, 57],
-  [5, 58],
+  [5, 56],
+  [8, 57],
+  [12, 59],
+  [16, 61],
+  [20, 64],
+  [24, 68],
+  [27, 71],
+  [26, 72],
+  [22, 71],
+  [18, 68],
+  [15, 65],
+  [12, 62],
+  [9, 59],
+  [6, 57],
+  [5, 56],
 ];
 
 const MADAGASCAR: Polygon = [
@@ -523,14 +487,18 @@ const SRI_LANKA: Polygon = [
 
 const ITALY: Polygon = [
   [8, 44],
-  [10, 44],
-  [12, 43],
+  [10, 45],
+  [12, 44],
+  [13, 43],
   [14, 42],
-  [16, 40],
+  [15, 41],
+  [16, 39],
   [16, 38],
   [15, 37],
-  [13, 38],
-  [12, 42],
+  [14, 38],
+  [13, 39],
+  [12, 41],
+  [11, 42],
   [10, 43],
   [8, 44],
 ];
@@ -554,70 +522,212 @@ function lonLatToXY(
   return [((lon + 180) / 360) * w, ((90 - lat) / 180) * h];
 }
 
-function drawPolygon(
+function smoothPolygon(poly: Polygon, passes: number): Polygon {
+  const isClosed =
+    poly.length > 2 &&
+    poly[0][0] === poly[poly.length - 1][0] &&
+    poly[0][1] === poly[poly.length - 1][1];
+  let points = isClosed ? poly.slice(0, -1) : [...poly];
+
+  for (let pass = 0; pass < passes; pass++) {
+    const next: Polygon = [];
+    for (let i = 0; i < points.length; i++) {
+      const current = points[i];
+      const following = points[(i + 1) % points.length];
+      next.push(
+        [
+          current[0] * 0.75 + following[0] * 0.25,
+          current[1] * 0.75 + following[1] * 0.25,
+        ],
+        [
+          current[0] * 0.25 + following[0] * 0.75,
+          current[1] * 0.25 + following[1] * 0.75,
+        ],
+      );
+    }
+    points = next;
+  }
+
+  if (isClosed && points.length > 0) {
+    points.push([points[0][0], points[0][1]]);
+  }
+
+  return points;
+}
+
+function drawPolygonPath(
   ctx: CanvasRenderingContext2D,
   poly: Polygon,
   w: number,
   h: number,
 ) {
+  const smoothed = smoothPolygon(poly, 2);
   ctx.beginPath();
-  for (let i = 0; i < poly.length; i++) {
-    const [x, y] = lonLatToXY(poly[i][0], poly[i][1], w, h);
+  for (let i = 0; i < smoothed.length; i++) {
+    const [x, y] = lonLatToXY(smoothed[i][0], smoothed[i][1], w, h);
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
   ctx.closePath();
-  ctx.fill();
 }
 
-export function buildContinentTexture(): THREE.CanvasTexture {
+function createCanvas(width: number, height: number): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+function tintMask(
+  maskCanvas: HTMLCanvasElement,
+  color: string,
+): HTMLCanvasElement {
+  const tintedCanvas = createCanvas(maskCanvas.width, maskCanvas.height);
+  const tintedCtx = tintedCanvas.getContext("2d")!;
+  tintedCtx.drawImage(maskCanvas, 0, 0);
+  tintedCtx.globalCompositeOperation = "source-in";
+  tintedCtx.fillStyle = color;
+  tintedCtx.fillRect(0, 0, tintedCanvas.width, tintedCanvas.height);
+  return tintedCanvas;
+}
+
+function buildSoftGlowCanvas(
+  maskCanvas: HTMLCanvasElement,
+  glowColor: string,
+): HTMLCanvasElement {
+  const glowCanvas = createCanvas(maskCanvas.width, maskCanvas.height);
+  const glowCtx = glowCanvas.getContext("2d")!;
+  glowCtx.drawImage(maskCanvas, 0, 0);
+  glowCtx.globalCompositeOperation = "source-in";
+
+  const gradient = glowCtx.createLinearGradient(
+    0,
+    0,
+    glowCanvas.width,
+    glowCanvas.height,
+  );
+  gradient.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+  gradient.addColorStop(0.4, glowColor);
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0.55)");
+  glowCtx.fillStyle = gradient;
+  glowCtx.fillRect(0, 0, glowCanvas.width, glowCanvas.height);
+
+  return glowCanvas;
+}
+
+function buildOutlineCanvas(
+  w: number,
+  h: number,
+  outlineColor: string,
+): HTMLCanvasElement {
+  const outlineCanvas = createCanvas(w, h);
+  const outlineCtx = outlineCanvas.getContext("2d")!;
+  outlineCtx.strokeStyle = outlineColor;
+  outlineCtx.lineWidth = 2;
+  outlineCtx.lineJoin = "round";
+  outlineCtx.lineCap = "round";
+
+  for (const group of ALL_CONTINENTS) {
+    for (const poly of group.polygons) {
+      drawPolygonPath(outlineCtx, poly, w, h);
+      outlineCtx.stroke();
+    }
+  }
+
+  return outlineCanvas;
+}
+
+function drawTerrainDetail(
+  ctx: CanvasRenderingContext2D,
+  maskCanvas: HTMLCanvasElement,
+  w: number,
+  h: number,
+) {
+  const detailCanvas = createCanvas(w, h);
+  const detailCtx = detailCanvas.getContext("2d")!;
+  detailCtx.drawImage(maskCanvas, 0, 0);
+  detailCtx.globalCompositeOperation = "source-in";
+
+  const lightSweep = detailCtx.createLinearGradient(0, 0, w, h);
+  lightSweep.addColorStop(0, "rgba(255, 255, 255, 0.14)");
+  lightSweep.addColorStop(0.45, "rgba(255, 255, 255, 0.02)");
+  lightSweep.addColorStop(1, "rgba(0, 0, 0, 0.2)");
+  detailCtx.fillStyle = lightSweep;
+  detailCtx.fillRect(0, 0, w, h);
+
+  for (let i = 0; i < 28; i++) {
+    const x = (((i * 73) % 101) / 100) * w;
+    const y = (((i * 37) % 89) / 88) * h;
+    const radius = (0.04 + ((i * 19) % 17) / 120) * h;
+    const gradient = detailCtx.createRadialGradient(x, y, 0, x, y, radius);
+    if (i % 2 === 0) {
+      gradient.addColorStop(0, "rgba(255, 255, 255, 0.12)");
+      gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+    } else {
+      gradient.addColorStop(0, "rgba(0, 0, 0, 0.16)");
+      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+    }
+    detailCtx.fillStyle = gradient;
+    detailCtx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+
+  ctx.globalAlpha = 0.55;
+  ctx.drawImage(detailCanvas, 0, 0);
+  ctx.globalAlpha = 1;
+}
+
+export interface ContinentTextureOptions {
+  fillColor: string;
+  outlineColor: string;
+  glowColor: string;
+}
+
+export function buildContinentTexture(
+  options: ContinentTextureOptions,
+): THREE.CanvasTexture {
   const w = 2048;
   const h = 1024;
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  const canvas = createCanvas(w, h);
   const ctx = canvas.getContext("2d")!;
+  const landMaskCanvas = createCanvas(w, h);
+  const landMaskCtx = landMaskCanvas.getContext("2d")!;
 
-  // Ocean background (transparent - the base sphere handles ocean color)
   ctx.clearRect(0, 0, w, h);
-
-  // Draw continents with glow
-  ctx.shadowColor = "rgba(192, 38, 211, 0.6)";
-  ctx.shadowBlur = 20;
-  ctx.fillStyle = "rgba(192, 38, 211, 0.45)";
+  landMaskCtx.fillStyle = "#fff";
 
   for (const group of ALL_CONTINENTS) {
     for (const poly of group.polygons) {
-      drawPolygon(ctx, poly, w, h);
+      drawPolygonPath(landMaskCtx, poly, w, h);
+      landMaskCtx.fill();
     }
   }
 
-  // Second pass - brighter core
-  ctx.shadowBlur = 8;
-  ctx.fillStyle = "rgba(220, 100, 230, 0.3)";
-  for (const group of ALL_CONTINENTS) {
-    for (const poly of group.polygons) {
-      drawPolygon(ctx, poly, w, h);
-    }
-  }
+  const landFillCanvas = tintMask(landMaskCanvas, options.fillColor);
+  const outlineCanvas = buildOutlineCanvas(w, h, options.outlineColor);
+  const landGlowCanvas = tintMask(landMaskCanvas, options.glowColor);
+  const softFillGlowCanvas = buildSoftGlowCanvas(
+    landMaskCanvas,
+    options.glowColor,
+  );
 
-  // Edge outlines for definition
-  ctx.shadowBlur = 4;
-  ctx.shadowColor = "rgba(255, 180, 255, 0.4)";
-  ctx.strokeStyle = "rgba(230, 140, 240, 0.5)";
-  ctx.lineWidth = 1.5;
-  for (const group of ALL_CONTINENTS) {
-    for (const poly of group.polygons) {
-      ctx.beginPath();
-      for (let i = 0; i < poly.length; i++) {
-        const [x, y] = lonLatToXY(poly[i][0], poly[i][1], w, h);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.stroke();
-    }
-  }
+  ctx.globalAlpha = 0.52;
+  ctx.filter = "blur(22px)";
+  ctx.drawImage(landGlowCanvas, 0, 0);
+  ctx.filter = "none";
+  ctx.globalAlpha = 0.46;
+  ctx.filter = "blur(10px)";
+  ctx.drawImage(softFillGlowCanvas, 0, 0);
+  ctx.filter = "none";
+  ctx.globalAlpha = 0.2;
+  ctx.filter = "blur(5px)";
+  ctx.drawImage(outlineCanvas, 0, 0);
+  ctx.filter = "none";
+  ctx.globalAlpha = 0.58;
+  ctx.drawImage(landFillCanvas, 0, 0);
+  drawTerrainDetail(ctx, landMaskCanvas, w, h);
+  ctx.globalAlpha = 0.72;
+  ctx.drawImage(outlineCanvas, 0, 0);
+  ctx.globalAlpha = 1;
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.needsUpdate = true;
