@@ -32,12 +32,12 @@ const CAMERA_MAX_DISTANCE = 5.15;
 const WHEEL_ZOOM_SENSITIVITY = 0.0024;
 const PINCH_ZOOM_SENSITIVITY = 0.006;
 const FALLBACK_COLORS = {
-  core: "#040d14",
-  land: "#7bdfea",
-  landOutline: "#e2feff",
-  atmosphere: "#72eeff",
-  glow: "#36d9f8",
-  beacon: "#f0ffff",
+  core: "#0d0613",
+  land: "#f3b6fb",
+  landOutline: "#fff2fe",
+  atmosphere: "#f0a5ff",
+  glow: "#e86bf8",
+  beacon: "#fff6ff",
   text: "#f8fafc",
 };
 
@@ -199,20 +199,6 @@ class AppGlobe extends HTMLElement {
     innerGlow.renderOrder = 0;
     this.globeGroup.add(innerGlow);
 
-    const atmosphereShell = new Mesh(
-      new SphereGeometry(GLOBE_RADIUS * 1.055, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
-      new MeshBasicMaterial({
-        color: this.palette.atmosphere.clone().lerp(this.palette.beacon, 0.28),
-        transparent: true,
-        opacity: 0.16,
-        side: BackSide,
-        depthWrite: false,
-        blending: AdditiveBlending,
-      }),
-    );
-    atmosphereShell.renderOrder = 1;
-    this.globeGroup.add(atmosphereShell);
-
     const globeMat = new MeshLambertMaterial({
       color: this.palette.core.clone().lerp(this.palette.atmosphere, 0.13),
       emissive: this.palette.glow.clone().lerp(this.palette.atmosphere, 0.44),
@@ -221,7 +207,7 @@ class AppGlobe extends HTMLElement {
       opacity: 0.86,
     });
     const globe = new Mesh(new SphereGeometry(GLOBE_RADIUS, SPHERE_SEGMENTS, SPHERE_SEGMENTS), globeMat);
-    globe.renderOrder = 2;
+    globe.renderOrder = 1;
     this.globeGroup.add(globe);
 
     this.continentTex = buildContinentTexture({
@@ -240,7 +226,7 @@ class AppGlobe extends HTMLElement {
       new SphereGeometry(GLOBE_RADIUS * 1.0025, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
       continentMat,
     );
-    continents.renderOrder = 3;
+    continents.renderOrder = 2;
     this.globeGroup.add(continents);
 
     this.globeGroup.add(this.beaconGroup);
