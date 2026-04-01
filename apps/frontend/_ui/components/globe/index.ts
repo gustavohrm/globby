@@ -31,6 +31,19 @@ const CAMERA_MIN_DISTANCE = 2.85;
 const CAMERA_MAX_DISTANCE = 5.15;
 const WHEEL_ZOOM_SENSITIVITY = 0.0024;
 const PINCH_ZOOM_SENSITIVITY = 0.006;
+const BUTTON_ZOOM_STEP = 0.22;
+const DEFAULT_ZOOM_THUMB_SIZE = 20;
+const ZOOM_CONTROL_ROOT_CLASSES =
+  "pointer-events-none absolute left-0 top-1/2 z-10 flex w-14 -translate-y-1/2 justify-start pl-4";
+const ZOOM_CONTROL_RAIL_CLASSES = "pointer-events-auto flex flex-col items-center gap-3 rounded-full bg-foreground p-2";
+const ZOOM_BUTTON_BASE_CLASSES =
+  "flex size-10 p-2 items-center justify-center rounded-full transition-colors duration-400";
+const ZOOM_BUTTON_ENABLED_CLASSES = "cursor-pointer text-text-secondary hover:bg-surface hover:text-primary";
+const ZOOM_BUTTON_DISABLED_CLASSES = "cursor-default text-text-secondary opacity-40";
+const ZOOM_TRACK_CLASSES = "relative flex h-44 w-10 cursor-ns-resize items-center justify-center touch-none";
+const ZOOM_TRACK_LINE_CLASSES = "absolute top-0 bottom-0 left-1/2 w-px -translate-x-1/2 rounded-full bg-surface";
+const ZOOM_THUMB_CLASSES =
+  "absolute left-1/2 size-5 -translate-x-1/2 rotate-45 rounded-sm border border-border bg-primary";
 const FALLBACK_COLORS = {
   core: "#0d0613",
   land: "#f3b6fb",
@@ -54,6 +67,16 @@ type GlobePalette = {
   glow: Color;
   beacon: Color;
 };
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getZoomButtonIcon(type: "in" | "out"): string {
+  const symbol = type === "in" ? '<path d="M12 8v8" /><path d="M8 12h8" />' : '<path d="M8 12h8" />';
+
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.75 21.25 12 12 21.25 2.75 12 12 2.75Z" />${symbol}</svg>`;
+}
 
 function toRgba(color: Color, alpha: number): string {
   const red = Math.round(color.r * 255);
@@ -86,6 +109,11 @@ class AppGlobe extends HTMLElement {
   private cameraDistance = CAMERA_DEFAULT_DISTANCE;
   private pinchDistance = 0;
   private activePointers = new Map<number, { x: number; y: number }>();
+  private zoomTrackEl: HTMLDivElement | null = null;
+  private zoomThumbEl: HTMLDivElement | null = null;
+  private zoomInButton: HTMLButtonElement | null = null;
+  private zoomOutButton: HTMLButtonElement | null = null;
+  private zoomTrackPointerId: number | null = null;
 
   static get observedAttributes() {
     return ["selected-room"];
@@ -112,6 +140,7 @@ class AppGlobe extends HTMLElement {
     ].join(";");
     this.initRenderer();
     this.buildScene();
+    this.createZoomControls();
     this.setupPointerEvents();
     document.addEventListener("rooms-changed", this.onRoomsChanged);
     window.addEventListener("resize", this.onResize);
@@ -132,6 +161,23 @@ class AppGlobe extends HTMLElement {
       this.canvas.removeEventListener("wheel", this.onWheel);
       this.canvas = null;
     }
+    if (this.zoomInButton) {
+      this.zoomInButton.removeEventListener("click", this.onZoomInClick);
+      this.zoomInButton = null;
+    }
+    if (this.zoomOutButton) {
+      this.zoomOutButton.removeEventListener("click", this.onZoomOutClick);
+      this.zoomOutButton = null;
+    }
+    if (this.zoomTrackEl) {
+      this.zoomTrackEl.removeEventListener("pointerdown", this.onZoomTrackPointerDown);
+      this.zoomTrackEl.removeEventListener("pointermove", this.onZoomTrackPointerMove);
+      this.zoomTrackEl.removeEventListener("pointerup", this.onZoomTrackPointerUp);
+      this.zoomTrackEl.removeEventListener("pointercancel", this.onZoomTrackPointerCancel);
+      this.zoomTrackEl = null;
+    }
+    this.zoomThumbEl = null;
+    this.zoomTrackPointerId = null;
     this.disposeScene();
     this.renderer.dispose();
   }
@@ -165,6 +211,56 @@ class AppGlobe extends HTMLElement {
     this.tooltipEl = document.createElement("div");
     this.tooltipEl.style.cssText = `position:absolute;pointer-events:none;background:${toRgba(this.palette.core, 0.92)};border:1px solid ${toRgba(this.palette.beacon, 0.55)};box-shadow:0 0 22px ${toRgba(this.palette.glow, 0.18)};color:${this.palette.textCss};font-size:12px;padding:4px 10px;border-radius:999px;display:none;white-space:nowrap;z-index:10;backdrop-filter:blur(10px);`;
     this.appendChild(this.tooltipEl);
+  }
+
+  private createZoomControls() {
+    const control = document.createElement("div");
+    control.className = ZOOM_CONTROL_ROOT_CLASSES;
+
+    const rail = document.createElement("div");
+    rail.className = ZOOM_CONTROL_RAIL_CLASSES;
+
+    const zoomInButton = this.createZoomButton("in", "Zoom in");
+    const zoomOutButton = this.createZoomButton("out", "Zoom out");
+
+    const track = document.createElement("div");
+    track.className = ZOOM_TRACK_CLASSES;
+    track.setAttribute("aria-hidden", "true");
+
+    const trackLine = document.createElement("div");
+    trackLine.className = ZOOM_TRACK_LINE_CLASSES;
+
+    const thumb = document.createElement("div");
+    thumb.className = ZOOM_THUMB_CLASSES;
+    thumb.style.top = "0px";
+
+    track.append(trackLine, thumb);
+    rail.append(zoomInButton, track, zoomOutButton);
+    control.appendChild(rail);
+    this.appendChild(control);
+
+    this.zoomTrackEl = track;
+    this.zoomThumbEl = thumb;
+    this.zoomInButton = zoomInButton;
+    this.zoomOutButton = zoomOutButton;
+
+    zoomInButton.addEventListener("click", this.onZoomInClick);
+    zoomOutButton.addEventListener("click", this.onZoomOutClick);
+    track.addEventListener("pointerdown", this.onZoomTrackPointerDown);
+    track.addEventListener("pointermove", this.onZoomTrackPointerMove);
+    track.addEventListener("pointerup", this.onZoomTrackPointerUp);
+    track.addEventListener("pointercancel", this.onZoomTrackPointerCancel);
+
+    this.syncZoomControls();
+  }
+
+  private createZoomButton(type: "in" | "out", label: string): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("aria-label", label);
+    button.className = `${ZOOM_BUTTON_BASE_CLASSES} ${ZOOM_BUTTON_ENABLED_CLASSES}`;
+    button.innerHTML = getZoomButtonIcon(type);
+    return button;
   }
 
   private buildScene() {
@@ -337,13 +433,55 @@ class AppGlobe extends HTMLElement {
     }
   }
 
+  private getZoomProgress(): number {
+    return clamp((this.cameraDistance - CAMERA_MIN_DISTANCE) / (CAMERA_MAX_DISTANCE - CAMERA_MIN_DISTANCE), 0, 1);
+  }
+
+  private getCameraDistanceFromProgress(progress: number): number {
+    return CAMERA_MIN_DISTANCE + clamp(progress, 0, 1) * (CAMERA_MAX_DISTANCE - CAMERA_MIN_DISTANCE);
+  }
+
+  private getCameraDistanceFromTrackPointer(event: PointerEvent): number {
+    if (!this.zoomTrackEl) {
+      return this.cameraDistance;
+    }
+
+    const rect = this.zoomTrackEl.getBoundingClientRect();
+    const thumbSize = this.zoomThumbEl?.offsetHeight ?? DEFAULT_ZOOM_THUMB_SIZE;
+    const usableHeight = Math.max(rect.height - thumbSize, 1);
+    const thumbOffset = clamp(event.clientY - rect.top - thumbSize / 2, 0, usableHeight);
+    return this.getCameraDistanceFromProgress(thumbOffset / usableHeight);
+  }
+
+  private syncZoomButtonState(button: HTMLButtonElement | null, disabled: boolean) {
+    if (!button) {
+      return;
+    }
+
+    button.disabled = disabled;
+    button.className = `${ZOOM_BUTTON_BASE_CLASSES} ${disabled ? ZOOM_BUTTON_DISABLED_CLASSES : ZOOM_BUTTON_ENABLED_CLASSES}`;
+  }
+
+  private syncZoomControls() {
+    if (this.zoomTrackEl && this.zoomThumbEl) {
+      const thumbSize = this.zoomThumbEl.offsetHeight || DEFAULT_ZOOM_THUMB_SIZE;
+      const usableHeight = Math.max(this.zoomTrackEl.clientHeight - thumbSize, 0);
+      this.zoomThumbEl.style.top = `${this.getZoomProgress() * usableHeight}px`;
+    }
+
+    this.syncZoomButtonState(this.zoomInButton, this.cameraDistance <= CAMERA_MIN_DISTANCE + 0.001);
+    this.syncZoomButtonState(this.zoomOutButton, this.cameraDistance >= CAMERA_MAX_DISTANCE - 0.001);
+  }
+
   private setCameraDistance(distance: number) {
-    this.cameraDistance = Math.max(CAMERA_MIN_DISTANCE, Math.min(CAMERA_MAX_DISTANCE, distance));
+    this.cameraDistance = clamp(distance, CAMERA_MIN_DISTANCE, CAMERA_MAX_DISTANCE);
 
     if (this.camera) {
       this.camera.position.z = this.cameraDistance;
       this.camera.updateProjectionMatrix();
     }
+
+    this.syncZoomControls();
   }
 
   private zoomCamera(delta: number) {
@@ -458,6 +596,74 @@ class AppGlobe extends HTMLElement {
     this.zoomCamera(e.deltaY * WHEEL_ZOOM_SENSITIVITY);
     this.hideTooltip();
     this.renderer.domElement.style.cursor = this.hoveredRoomId ? "pointer" : "grab";
+  };
+
+  private onZoomInClick = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    this.clearHoverState();
+    this.hideTooltip();
+    this.zoomCamera(-BUTTON_ZOOM_STEP);
+  };
+
+  private onZoomOutClick = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    this.clearHoverState();
+    this.hideTooltip();
+    this.zoomCamera(BUTTON_ZOOM_STEP);
+  };
+
+  private onZoomTrackPointerDown = (e: PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    this.clearHoverState();
+    this.hideTooltip();
+    this.zoomTrackPointerId = e.pointerId;
+
+    const track = e.currentTarget as HTMLDivElement;
+    track.setPointerCapture(e.pointerId);
+    this.setCameraDistance(this.getCameraDistanceFromTrackPointer(e));
+  };
+
+  private onZoomTrackPointerMove = (e: PointerEvent) => {
+    if (this.zoomTrackPointerId !== e.pointerId) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    this.setCameraDistance(this.getCameraDistanceFromTrackPointer(e));
+  };
+
+  private onZoomTrackPointerUp = (e: PointerEvent) => {
+    if (this.zoomTrackPointerId !== e.pointerId) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const track = e.currentTarget as HTMLDivElement;
+    if (track.hasPointerCapture(e.pointerId)) {
+      track.releasePointerCapture(e.pointerId);
+    }
+    this.zoomTrackPointerId = null;
+  };
+
+  private onZoomTrackPointerCancel = (e: PointerEvent) => {
+    if (this.zoomTrackPointerId !== e.pointerId) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const track = e.currentTarget as HTMLDivElement;
+    if (track.hasPointerCapture(e.pointerId)) {
+      track.releasePointerCapture(e.pointerId);
+    }
+    this.zoomTrackPointerId = null;
   };
 
   private setupPointerEvents() {
